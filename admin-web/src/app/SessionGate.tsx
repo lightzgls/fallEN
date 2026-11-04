@@ -5,9 +5,9 @@ import {
   MutationProvider,
   useSession,
 } from "./contexts";
-import { Notice } from "../components/ui";
+import { Notice } from "../components/Ui";
 import { Login } from "../features/auth/Login";
-import { AdminShell } from "./AdminShell";
+import { Shell } from "./Shell";
 export function SessionGate() {
   const session = useSession();
   const [revoked, setRevoked] = useState(false);
@@ -59,7 +59,7 @@ export function SessionGate() {
   return (
     <MutationProvider key={session.user?.uid}>
       <DraftProvider>
-        <AdminShell />
+        <Shell />
       </DraftProvider>
     </MutationProvider>
   );

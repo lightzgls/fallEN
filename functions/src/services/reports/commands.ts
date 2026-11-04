@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { objectId, stableId, version } from "../../domain/backend.js";
+import { objectId, stableId, version } from "../../domain/values.js";
 import {
   categorySchema,
   resolutionSchema,
@@ -7,9 +7,9 @@ import {
   targetSchema,
   transitions,
 } from "../../domain/reports/contracts.js";
-import { publicReport } from "../../domain/reports/public-report.js";
-import { reportRef } from "../../infrastructure/reports/references.js";
-import { getSnapshot } from "../../infrastructure/reports/target-snapshot.js";
+import { publicReport } from "../../domain/reports/public-view.js";
+import { reportRef } from "../../infrastructure/reports/refs.js";
+import { getSnapshot } from "../../infrastructure/reports/snapshot.js";
 import {
   assertAdmin,
   checkVersion,

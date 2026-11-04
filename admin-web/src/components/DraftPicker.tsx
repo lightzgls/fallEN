@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useDraft, useMutation } from "../app/contexts";
 import { useQuery } from "../hooks/useQuery";
 import { api } from "../services/api";
-import { QueryState } from "./ui";
+import { QueryState } from "./Ui";
 export function DraftPicker() {
   const query = useQuery(() => api("listDecks", {}));
   const { draft, setDraft } = useDraft(),

@@ -25,13 +25,21 @@ Pipeline operator trong `tools/dictionary/` tách manifest/schema, kiểm tra ng
 
 ## Web admin
 
-- `app/` tách session, draft state, mutation/recovery, shell, navigation/dirty prompt và theme. Các import cũ qua `contexts.tsx` được giữ tương thích.
+- `app/` tách session, draft state, mutation/recovery, shell, navigation/dirty prompt và theme. `contexts.ts` tái xuất các provider và hook dùng chung.
 - `features/content/` tách metadata form, bảng/một hàng từ, editor học liệu, flashcard preview và publication dialogs. Các hook quản lý state/lệnh của editor và publish.
 - `features/imports/` tách nhập nguồn, preview table, confirmation, resolve/resume và các hook nguồn/lựa chọn/command.
 - `features/reports/` tách queue/detail, context/audit/status form và logic chuẩn bị tham chiếu nguồn sửa.
 - `models/` chia DTO theo dictionary, content, import, configuration, report, command và API; `index.ts` chỉ tái xuất kiểu.
 
 SDK truy cập qua `services/`. JSX tập trung render và phát sự kiện; payload ổn định, version, command journal và xử lý kết quả chưa rõ được giữ ở các hook/service hiện có.
+
+## Quy ước đặt tên file
+
+- Component và context React dùng `PascalCase.tsx`: `DraftEditor.tsx`, `DeckDialogs.tsx`, `SessionContext.tsx`. File màn hình mang tên component chính; `Topics.tsx` và `Limit.tsx` là hai màn hình riêng.
+- Hook dùng `useCamelCase.ts`: `useNavigation.ts`, `usePublishDeck.ts`.
+- Backend, model và module hỗ trợ dùng `kebab-case.ts`: `import-worker.ts`, `round-store.ts`, `command-journal.ts`. Giữ các tên entry/barrel và hậu tố công cụ thông dụng như `index.ts`, `main.tsx`, `contexts.ts`, `vite.config.ts`, `*.test.ts`, `*.spec.ts`.
+- Dùng ngữ cảnh thư mục để tránh lặp: `profile/reader.ts`, `reports/labels.ts`. Tên vẫn cần nêu rõ vai trò khi dễ nhầm: `import-commands.ts` tiếp nhận lệnh, `import-worker.ts` tiếp tục xử lý lô, `apply-row.ts` áp dụng một dòng.
+- Chỉ dùng viết tắt quen thuộc như `api`, `config`, `stats`, `refs`; không tự rút gọn thành tên khó đoán. Import phải khớp chính xác chữ hoa/thường để chạy được trên Linux.
 
 ## Cách kiểm chứng
 

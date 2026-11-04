@@ -15,7 +15,7 @@ import type {
   ImportReceipt,
   ImportRow,
 } from "./imports";
-import type { Speech, Topic, ChatLimit } from "./configuration";
+import type { Speech, Topic, ChatLimit } from "./config";
 import type {
   ReportStatus,
   ReportCategory,

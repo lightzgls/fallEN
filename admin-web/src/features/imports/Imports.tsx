@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useDraft } from "../../app/contexts";
 import { DraftPicker } from "../../components/DraftPicker";
-import { Notice } from "../../components/ui";
+import { Notice } from "../../components/Ui";
 import type { ImportRow } from "../../models";
-import { ImportSourceForm } from "./ImportSourceForm";
-import { ImportPreviewTable } from "./ImportPreviewTable";
-import { ImportConfirmation } from "./ImportConfirmation";
+import { SourceForm } from "./SourceForm";
+import { PreviewTable } from "./PreviewTable";
+import { ConfirmImport } from "./ConfirmImport";
 import { ResumeImport } from "./ResumeImport";
 import { ResolveRow } from "./ResolveRow";
 import { useImportSource } from "./useImportSource";
@@ -55,7 +55,7 @@ export function Imports({
       {error && <Notice tone="error">{error}</Notice>}
       {message && <Notice tone="success">{message}</Notice>}
       {!preview ? (
-        <ImportSourceForm
+        <SourceForm
           input={input}
           locked={commands.locked}
           hasDraft={!!draft.draft}
@@ -64,7 +64,7 @@ export function Imports({
           onDraft={() => navigate("/draft")}
         />
       ) : (
-        <ImportPreviewTable
+        <PreviewTable
           preview={preview}
           selected={selection.selected}
           duplicates={selection.duplicates}
@@ -79,7 +79,7 @@ export function Imports({
         />
       )}
       {confirm && preview && (
-        <ImportConfirmation
+        <ConfirmImport
           selectedCount={selection.selected.size}
           rowCount={preview.rows.length}
           locked={commands.locked}

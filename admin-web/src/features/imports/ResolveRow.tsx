@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation } from "../../app/contexts";
 import type { ImportRow, ImportPreview } from "../../models";
 import { api, apiError } from "../../services/api";
-import { Dialog, Notice } from "../../components/ui";
+import { Dialog, Notice } from "../../components/Ui";
 export function ResolveRow({
   row,
   preview,

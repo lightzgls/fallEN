@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useDraft, useMutation } from "../../app/contexts";
-import { Dialog, Icon, QueryState, TextField } from "../../components/ui";
+import { Dialog, Icon, QueryState, TextField } from "../../components/Ui";
 import { useQuery } from "../../hooks/useQuery";
 import { api } from "../../services/api";
 import type { Deck, Metadata } from "../../models";

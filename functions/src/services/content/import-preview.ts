@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { objectId, stableId, version } from "../../domain/backend.js";
-import { rowSchema } from "../../domain/content-schemas.js";
-import { readImportFileRows } from "../../infrastructure/content-assets.js";
+import { objectId, stableId, version } from "../../domain/values.js";
+import { rowSchema } from "../../domain/content.js";
+import { readImportFileRows } from "../../infrastructure/content/files.js";
 import {
   deckRef,
   importRef,
   revisionRef,
-} from "../../infrastructure/content/references.js";
+} from "../../infrastructure/content/refs.js";
 import {
   assertActive,
   assertAdmin,
@@ -21,7 +21,7 @@ import {
   type Data,
 } from "../../shared/core.js";
 import { readWordVersion, resolveRelease } from "../dictionary.js";
-import { resolveImportRows } from "./import-row-resolution.js";
+import { resolveImportRows } from "./match-row.js";
 import { assertDraft, checkEncodedSize, validateAsset } from "./validation.js";
 
 export async function previewImport(actor: Actor, raw: unknown) {

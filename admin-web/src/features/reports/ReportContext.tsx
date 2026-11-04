@@ -1,6 +1,6 @@
 import type { ContentReport } from "../../models";
-import { Notice } from "../../components/ui";
-import { dateLabel } from "./report-labels";
+import { Notice } from "../../components/Ui";
+import { dateLabel } from "./labels";
 export function ReportContext({
   report,
   onOpenSource,

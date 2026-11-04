@@ -4,7 +4,7 @@ import { useQuery } from "../../hooks/useQuery";
 import { api, apiError, uploadAsset } from "../../services/api";
 import { cleanEntry, entryError } from "../../utils/content";
 import { StoredImage } from "../../components/StoredImage";
-import { Dialog, Notice, QueryState, TextField } from "../../components/ui";
+import { Dialog, Notice, QueryState, TextField } from "../../components/Ui";
 export function EntryEditor({
   entry,
   onSave,

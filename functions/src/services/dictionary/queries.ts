@@ -1,13 +1,10 @@
 import { z } from "zod";
 import { sourceSchema } from "../../domain/dictionary/source.js";
-import {
-  read,
-  readWord,
-} from "../../infrastructure/dictionary/lexical-reader.js";
+import { read, readWord } from "../../infrastructure/dictionary/word-reader.js";
 import {
   readDeckSource,
   readPersonalSource,
-} from "../../infrastructure/dictionary/study-source-reader.js";
+} from "../../infrastructure/dictionary/source-reader.js";
 import {
   assertActive,
   db,

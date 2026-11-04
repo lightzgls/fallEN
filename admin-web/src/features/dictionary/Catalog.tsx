@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useDraft, useMutation } from "../../app/contexts";
 import { DraftPicker } from "../../components/DraftPicker";
-import { Icon, Notice, TextField } from "../../components/ui";
+import { Icon, Notice, TextField } from "../../components/Ui";
 import { api, apiError, type ApiError } from "../../services/api";
 import { cleanEntry, metadataOf } from "../../utils/content";
 import type { Word, WordPage } from "../../models";

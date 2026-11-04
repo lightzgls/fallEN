@@ -1,4 +1,4 @@
-import { readProfileView } from "../../infrastructure/profile/profile-reader.js";
+import { readProfileView } from "../../infrastructure/profile/reader.js";
 import {
   assertActive,
   db,

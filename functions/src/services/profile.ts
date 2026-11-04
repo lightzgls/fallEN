@@ -1,16 +1,13 @@
 import { type Actor } from "../shared/types.js";
-import { ensureProfile, saveProfile } from "./profile/profile-commands.js";
+import { ensureProfile, saveProfile } from "./profile/commands.js";
 import {
   getProfile,
   getAccess,
   getAccountState,
   getDeletionInfo,
 } from "./profile/queries.js";
-import {
-  beginAvatarUpload,
-  finalizeAvatar,
-} from "./profile/avatar-commands.js";
-export { ensureProfile } from "./profile/profile-commands.js";
+import { beginAvatarUpload, finalizeAvatar } from "./profile/avatar.js";
+export { ensureProfile } from "./profile/commands.js";
 export { cleanupAvatars } from "../infrastructure/profile/avatar-cleanup.js";
 export const profileHandlers: Record<
   string,

@@ -3,9 +3,9 @@ import { fail } from "../../functions/src/shared/errors.js";
 import { hash } from "../../functions/src/shared/values.js";
 import { identifier } from "../../functions/src/shared/validation.js";
 import { manifestSchema } from "./manifest.js";
-import { validateManifest } from "./manifest-validation.js";
-import { stageRelease } from "./staging.js";
-import { commitRelease } from "./commit-release.js";
+import { validateManifest } from "./validate.js";
+import { stageRelease } from "./stage.js";
+import { commitRelease } from "./commit.js";
 export { manifestSchema, type DictionaryManifest } from "./manifest.js";
 /** Operator-only pipeline: validate, stage immutable contents, then commit the public pointer. */
 export async function publishDictionaryManifest(

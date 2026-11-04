@@ -1,5 +1,5 @@
 import type { ReportAction } from "../../models";
-import { statusLabels, dateLabel } from "./report-labels";
+import { statusLabels, dateLabel } from "./labels";
 export function ReportAudit({ actions }: { actions: ReportAction[] }) {
   return (
     <section>

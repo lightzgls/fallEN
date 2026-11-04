@@ -3,7 +3,7 @@ import type { DraftEditorData } from "../../models";
 import { useQuery } from "../../hooks/useQuery";
 import { api } from "../../services/api";
 import { StoredImage } from "../../components/StoredImage";
-import { Dialog, QueryState } from "../../components/ui";
+import { Dialog, QueryState } from "../../components/Ui";
 export function FlashcardPreview({
   draft,
   onClose,

@@ -10,7 +10,7 @@ import {
   configurationError,
   emulatorMode,
 } from "../../services/firebase";
-import { Notice, TextField } from "../../components/ui";
+import { Notice, TextField } from "../../components/Ui";
 export function Login() {
   const [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),

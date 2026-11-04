@@ -1,5 +1,5 @@
 import { type Transaction } from "firebase-admin/firestore";
-import { type Source } from "../../domain/backend.js";
+import { type Source } from "../../domain/values.js";
 import { type Actor } from "../../shared/core.js";
 import { readDeckSource, readPersonalSource } from "../dictionary.js";
 

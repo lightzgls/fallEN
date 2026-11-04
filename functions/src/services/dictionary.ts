@@ -10,12 +10,12 @@ import {
 export { sourceSchema } from "../domain/dictionary/source.js";
 export { type SourceWord } from "../domain/dictionary/source.js";
 export { type SourceRead } from "../domain/dictionary/source.js";
-export { resolveRelease } from "../infrastructure/dictionary/lexical-reader.js";
-export { readWordVersion } from "../infrastructure/dictionary/lexical-reader.js";
-export { currentEntry } from "../infrastructure/dictionary/lexical-reader.js";
-export { readWord } from "../infrastructure/dictionary/lexical-reader.js";
-export { readDeckSource } from "../infrastructure/dictionary/study-source-reader.js";
-export { readPersonalSource } from "../infrastructure/dictionary/study-source-reader.js";
+export { resolveRelease } from "../infrastructure/dictionary/word-reader.js";
+export { readWordVersion } from "../infrastructure/dictionary/word-reader.js";
+export { currentEntry } from "../infrastructure/dictionary/word-reader.js";
+export { readWord } from "../infrastructure/dictionary/word-reader.js";
+export { readDeckSource } from "../infrastructure/dictionary/source-reader.js";
+export { readPersonalSource } from "../infrastructure/dictionary/source-reader.js";
 export { normalizeKey } from "../domain/dictionary/search-key.js";
 export const dictionaryHandlers: Record<
   string,

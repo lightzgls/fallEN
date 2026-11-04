@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { objectId, sourceKey, sourceSchema } from "../../domain/backend.js";
-import { userRef } from "../../infrastructure/learning/references.js";
+import { objectId, sourceKey, sourceSchema } from "../../domain/values.js";
+import { userRef } from "../../infrastructure/learning/refs.js";
 import {
   assertActive,
   db,

@@ -1,11 +1,11 @@
 import { type Actor } from "../shared/types.js";
-import { startGame } from "./game/preparation.js";
+import { startGame } from "./game/prepare.js";
 import { endGame } from "./game/results.js";
-import { saveRound } from "./game/round-commit.js";
-import { createRound } from "./game/round-start.js";
-import { getEligibleGameSource } from "./game/source-query.js";
+import { saveRound } from "./game/save-round.js";
+import { createRound } from "./game/start-round.js";
+import { getEligibleGameSource } from "./game/eligible-source.js";
 
-export { prepareGame } from "./game/preparation.js";
+export { prepareGame } from "./game/prepare.js";
 
 /** Public Callable registry; each operation is implemented in its feature module. */
 export const gameHandlers: Record<

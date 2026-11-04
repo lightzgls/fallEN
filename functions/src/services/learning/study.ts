@@ -4,11 +4,8 @@ import {
   sourceKey,
   sourceSchema,
   stableId,
-} from "../../domain/backend.js";
-import {
-  dataWithId,
-  userRef,
-} from "../../infrastructure/learning/references.js";
+} from "../../domain/values.js";
+import { dataWithId, userRef } from "../../infrastructure/learning/refs.js";
 import {
   command,
   db,
@@ -18,7 +15,7 @@ import {
   type Actor,
   type Data,
 } from "../../shared/core.js";
-import { dueWords } from "./review-list.js";
+import { dueWords } from "./due-words.js";
 import { sourceWords } from "./sources.js";
 
 export const startStudySchema = z

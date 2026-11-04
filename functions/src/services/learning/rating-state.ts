@@ -1,6 +1,6 @@
-import { reviewDays, reviewLevel, sourceKey } from "../../domain/backend.js";
-import { readActivity } from "../../infrastructure/learning-activity.js";
-import { userRef } from "../../infrastructure/learning/references.js";
+import { reviewDays, reviewLevel, sourceKey } from "../../domain/values.js";
+import { readActivity } from "../../infrastructure/learning/activity.js";
+import { userRef } from "../../infrastructure/learning/refs.js";
 import {
   addDays,
   checkVersion,

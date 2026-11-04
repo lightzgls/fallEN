@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { objectId, version } from "../../domain/backend.js";
+import { objectId, version } from "../../domain/values.js";
 export const ratingSchema = z
   .object({
     sessionId: objectId,

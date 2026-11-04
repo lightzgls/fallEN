@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { entrySchema, metadataSchema } from "../../domain/content-schemas.js";
+import { entrySchema, metadataSchema } from "../../domain/content.js";
 import { db, fail, requireDoc, type Data } from "../../shared/core.js";
 import { readWordVersion } from "../dictionary.js";
 

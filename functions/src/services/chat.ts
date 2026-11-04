@@ -2,7 +2,7 @@ import { type Actor } from "../shared/types.js";
 import { type ChatApi } from "../domain/chat.js";
 import { startChat } from "./chat/start.js";
 import { sendMessage } from "./chat/send.js";
-import { acknowledgeTurn } from "./chat/acknowledge.js";
+import { acknowledgeTurn } from "./chat/ack.js";
 import { endChat } from "./chat/end.js";
 import {
   getChatWords,

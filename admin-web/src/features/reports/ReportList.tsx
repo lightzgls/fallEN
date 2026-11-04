@@ -1,6 +1,6 @@
 import type { ReportStatus, ReportCategory } from "../../models";
-import { Notice, QueryState } from "../../components/ui";
-import { statusLabels, categoryLabels, dateLabel } from "./report-labels";
+import { Notice, QueryState } from "../../components/Ui";
+import { statusLabels, categoryLabels, dateLabel } from "./labels";
 import { useReportList } from "./useReportList";
 export function ReportList({ navigate }: { navigate: (path: string) => void }) {
   const {

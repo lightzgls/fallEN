@@ -2,8 +2,9 @@ import { Decks } from "../features/content/Decks";
 import { DraftEditor } from "../features/content/DraftEditor";
 import { Catalog } from "../features/dictionary/Catalog";
 import { Imports } from "../features/imports/Imports";
-import { SpeechPage } from "../features/config/Speech";
-import { Limit, Topics } from "../features/config/AI";
+import { SpeechPage } from "../features/config/SpeechPage";
+import { Limit } from "../features/config/Limit";
+import { Topics } from "../features/config/Topics";
 import { Reports } from "../features/reports/Reports";
 export function FeatureRoute({
   path,

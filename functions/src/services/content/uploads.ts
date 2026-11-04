@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { objectId, stableId } from "../../domain/backend.js";
-import { resolveImageAsset } from "../../infrastructure/asset-resolver.js";
-import { inspectContentUpload } from "../../infrastructure/content-assets.js";
+import { objectId, stableId } from "../../domain/values.js";
+import { resolveImageAsset } from "../../infrastructure/content/image-reader.js";
+import { inspectContentUpload } from "../../infrastructure/content/files.js";
 import {
   assertActive,
   assertAdmin,

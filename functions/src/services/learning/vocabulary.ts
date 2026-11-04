@@ -1,12 +1,12 @@
 import { FieldPath, Timestamp } from "firebase-admin/firestore";
 import { z } from "zod";
-import { empty, objectId, stableId, version } from "../../domain/backend.js";
+import { empty, objectId, stableId, version } from "../../domain/values.js";
 import { newPlan } from "../../domain/review-plan.js";
 import {
   decodeCursor,
   encodeCursor,
 } from "../../infrastructure/learning/pagination.js";
-import { userRef } from "../../infrastructure/learning/references.js";
+import { userRef } from "../../infrastructure/learning/refs.js";
 import {
   assertActive,
   checkVersion,

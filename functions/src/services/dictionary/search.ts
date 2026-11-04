@@ -5,7 +5,7 @@ import {
   readWord,
   readWordVersion,
   resolveRelease,
-} from "../../infrastructure/dictionary/lexical-reader.js";
+} from "../../infrastructure/dictionary/word-reader.js";
 import {
   type SearchEntry,
   searchIndex,

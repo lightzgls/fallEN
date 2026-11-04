@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, assetUrl } from "../services/api";
-import { AssetImage } from "./ui";
+import { AssetImage } from "./Ui";
 export function StoredImage({
   assetId,
   alt,

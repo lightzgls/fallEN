@@ -1,7 +1,7 @@
-import { stableId } from "../../domain/backend.js";
+import { stableId } from "../../domain/values.js";
 import { newPlan } from "../../domain/review-plan.js";
-import { stageActivity } from "../../infrastructure/learning-activity.js";
-import { userRef } from "../../infrastructure/learning/references.js";
+import { stageActivity } from "../../infrastructure/learning/activity.js";
+import { userRef } from "../../infrastructure/learning/refs.js";
 import { command, dayKey, parse, type Actor } from "../../shared/core.js";
 import { ratingSchema, type RatingCommand } from "./rating-input.js";
 import { readRatingState } from "./rating-state.js";

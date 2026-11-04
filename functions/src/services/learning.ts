@@ -1,6 +1,6 @@
 import { type Actor } from "../shared/types.js";
 import { saveRating } from "./learning/rating.js";
-import { getDueWords } from "./learning/review-list.js";
+import { getDueWords } from "./learning/due-words.js";
 import {
   getChart,
   getDashboard,
@@ -9,7 +9,7 @@ import {
   getLearningDays,
   getRecentSets,
   getStats,
-} from "./learning/statistics.js";
+} from "./learning/stats.js";
 import {
   getRatingContext,
   getStudyPlace,

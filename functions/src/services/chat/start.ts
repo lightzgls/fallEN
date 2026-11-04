@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { type ReferenceWord } from "../../domain/chat.js";
-import { chatPath } from "../../infrastructure/chat/references.js";
+import { chatPath } from "../../infrastructure/chat/refs.js";
 import {
   type Actor,
   type Data,

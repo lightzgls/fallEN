@@ -6,9 +6,9 @@ import { parse } from "../../shared/validation.js";
 import {
   beginChatEnding,
   commitChatSummary,
-} from "../../infrastructure/chat/ending-repository.js";
+} from "../../infrastructure/chat/summary-store.js";
 import { deliveredContext } from "./context.js";
-import { collectSummaryFeedback } from "./summary-feedback.js";
+import { collectSummaryFeedback } from "./feedback.js";
 export async function endChat(
   actor: Actor,
   raw: unknown,

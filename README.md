@@ -82,7 +82,7 @@ D03 chưa chốt nguồn/giấy phép từ điển. Seed là 12 mục từ tự 
 
 Giới hạn triển khai bảo vệ bộ nhớ/document: file5MiB, avatar16MP→512×512 WebP; lô1000dòng với payload500KiB và receipt750KiB; search index64MiB; ngữ cảnh AI32.000ký tự, tin2000/reply4000, tối đa15cặp. Vượt giới hạn trả lỗi rõ, không cắt dữ liệu âm thầm. Đây là giới hạn tài nguyên của bản triển khai, không thay luật tính kết quả.
 
-Nếu người sở hữu admin job bị xóa giữa chừng bằng luồng của hệ thống, operator chạy `tools/recover-content-jobs.ts --confirm-orphan-recovery` bằng IAM/ADC. Script chỉ mở khóa khi gate DELETING, hoặc Auth đã mất và gate không ACTIVE; trả VALIDATING về DRAFT và APPLYING về FAILED, giữ bản đã công khai và dòng đã áp dụng. Không dùng script này thay cơ chế retry thông thường.
+Nếu người sở hữu admin job bị xóa giữa chừng bằng luồng của hệ thống, operator chạy `tools/recover-content.ts --confirm-orphan-recovery` bằng IAM/ADC. Script chỉ mở khóa khi gate DELETING, hoặc Auth đã mất và gate không ACTIVE; trả VALIDATING về DRAFT và APPLYING về FAILED, giữ bản đã công khai và dòng đã áp dụng. Không dùng script này thay cơ chế retry thông thường.
 
 ## Git
 

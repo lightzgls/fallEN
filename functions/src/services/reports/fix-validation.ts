@@ -3,7 +3,7 @@ import {
   targetSchema,
   type Resolution,
 } from "../../domain/reports/contracts.js";
-import { learningContent } from "../../domain/reports/learning-content.js";
+import { learningContent } from "../../domain/reports/material.js";
 import {
   db,
   fail,

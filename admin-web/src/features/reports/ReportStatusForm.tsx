@@ -1,6 +1,6 @@
 import type { ContentReport, ReportStatus } from "../../models";
-import { Notice, TextField } from "../../components/ui";
-import { transitions, statusLabels } from "./report-labels";
+import { Notice, TextField } from "../../components/Ui";
+import { transitions, statusLabels } from "./labels";
 import type { useReportStatus } from "./useReportStatus";
 export function ReportStatusForm({
   report,

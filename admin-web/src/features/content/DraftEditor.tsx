@@ -1,14 +1,14 @@
 import { useState } from "react";
 import type { SetWord } from "../../models";
 import { DraftPicker } from "../../components/DraftPicker";
-import { Icon, Notice } from "../../components/ui";
+import { Icon, Notice } from "../../components/Ui";
 import { EntryEditor } from "./EntryEditor";
 import { FlashcardPreview } from "./FlashcardPreview";
-import { DraftMetadataForm } from "./DraftMetadataForm";
-import { DraftEntriesTable } from "./DraftEntriesTable";
-import { DraftPublicationDialogs } from "./DraftPublicationDialogs";
+import { MetadataForm } from "./MetadataForm";
+import { EntryTable } from "./EntryTable";
+import { DeckDialogs } from "./DeckDialogs";
 import { useDraftEditor } from "./useDraftEditor";
-import { useDeckPublication } from "./useDeckPublication";
+import { usePublishDeck } from "./usePublishDeck";
 export function DraftEditor({
   navigate,
   onDirty,
@@ -37,7 +37,7 @@ export function DraftEditor({
     removeEntry,
     reload,
   } = editor;
-  const publication = useDeckPublication(
+  const publication = usePublishDeck(
     draft,
     navigate,
     () => setPublish(false),
@@ -72,7 +72,7 @@ export function DraftEditor({
         }}
       >
         <fieldset disabled={locked}>
-          <DraftMetadataForm
+          <MetadataForm
             metadata={metadata}
             setMetadata={setMetadata}
             cover={cover}
@@ -102,11 +102,7 @@ export function DraftEditor({
               Xem thử thẻ
             </button>
           </div>
-          <DraftEntriesTable
-            entries={entries}
-            onEdit={setEntry}
-            onMove={moveEntry}
-          />
+          <EntryTable entries={entries} onEdit={setEntry} onMove={moveEntry} />
           <div className="actions">
             <button className="primary" disabled={!dirty}>
               <Icon name="save" />
@@ -161,7 +157,7 @@ export function DraftEditor({
           onClose={() => setPreview(false)}
         />
       )}
-      <DraftPublicationDialogs
+      <DeckDialogs
         draft={draft}
         entryCount={entries.length}
         publish={publish}

@@ -8,13 +8,13 @@ import { id } from "../../shared/values.js";
 import {
   pruneCache,
   rememberReply,
-} from "../../infrastructure/ai/turn-reply-cache.js";
+} from "../../infrastructure/ai/reply-cache.js";
 import {
   hasProcessedTurn,
   reserveTurn,
   recordTurnFailure,
   recordReadyReply,
-} from "../../infrastructure/chat/turn-repository.js";
+} from "../../infrastructure/chat/turn-store.js";
 import { deliveredContext, promptFor } from "./context.js";
 export async function sendMessage(
   actor: Actor,

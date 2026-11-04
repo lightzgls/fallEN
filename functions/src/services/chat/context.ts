@@ -6,7 +6,7 @@ import {
   contextSchema,
   validateContextOrder,
 } from "../../domain/chat.js";
-import { chatPath } from "../../infrastructure/chat/references.js";
+import { chatPath } from "../../infrastructure/chat/refs.js";
 import { type Actor, type Data, db, fail, hash } from "../../shared/core.js";
 import { readDeckSource, readWordVersion } from "../dictionary.js";
 

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { objectId, sourceSchema, version } from "../../domain/backend.js";
+import { objectId, sourceSchema, version } from "../../domain/values.js";
 
 export const ttsSchema = z
   .object({

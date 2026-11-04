@@ -1,14 +1,14 @@
 import { FieldPath, Timestamp } from "firebase-admin/firestore";
 import { z } from "zod";
-import { objectId } from "../../domain/backend.js";
+import { objectId } from "../../domain/values.js";
 import {
   categorySchema,
   statusSchema,
   targetSchema,
 } from "../../domain/reports/contracts.js";
-import { publicReport } from "../../domain/reports/public-report.js";
-import { reportRef } from "../../infrastructure/reports/references.js";
-import { getSnapshot } from "../../infrastructure/reports/target-snapshot.js";
+import { publicReport } from "../../domain/reports/public-view.js";
+import { reportRef } from "../../infrastructure/reports/refs.js";
+import { getSnapshot } from "../../infrastructure/reports/snapshot.js";
 import {
   assertActive,
   assertAdmin,

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { objectId, version } from "../backend.js";
+import { objectId, version } from "../values.js";
 
 export const categorySchema = z.enum([
   "MEANING",

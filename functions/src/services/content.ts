@@ -7,26 +7,26 @@ import {
   saveLimit,
   saveSpeech,
   saveTopic,
-} from "./content/configuration.js";
+} from "./content/config.js";
 import {
   createDeck,
   openDraft,
   saveDraft,
   setDeckActive,
-} from "./content/deck-drafts.js";
-import { getDraft, listDecks } from "./content/deck-queries.js";
-import { applyImport } from "./content/import-apply.js";
+} from "./content/drafts.js";
+import { getDraft, listDecks } from "./content/decks.js";
+import { applyImport } from "./content/import-commands.js";
 import { previewImport, resolveImportRow } from "./content/import-preview.js";
-import { getImport, listImports } from "./content/import-queries.js";
-import { publishSet } from "./content/publication.js";
+import { getImport, listImports } from "./content/imports.js";
+import { publishSet } from "./content/publish.js";
 import {
   beginContentUpload,
   finalizeContentUpload,
   getImageAsset,
 } from "./content/uploads.js";
 
-export { resumeImport } from "./content/import-application.js";
-export { resumePublish } from "./content/publication.js";
+export { resumeImport } from "./content/import-worker.js";
+export { resumePublish } from "./content/publish.js";
 
 /** Public Callable registry; each operation is implemented in its feature module. */
 export const contentHandlers: Record<

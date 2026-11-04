@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useMutation } from "../../app/contexts";
 import type { ContentReport, ReportStatus } from "../../models";
 import { api, apiError } from "../../services/api";
-import { buildReportStatusPayload } from "./report-resolution";
-import { transitions } from "./report-labels";
+import { buildReportStatusPayload } from "./resolution";
+import { transitions } from "./labels";
 export function useReportStatus(
   report: ContentReport | undefined,
   onSaved: () => void,

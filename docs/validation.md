@@ -1,5 +1,11 @@
 # Nghiệm thu local — 04/11/2026
 
+## Chuẩn hóa tên file
+
+Đổi 70 đường dẫn theo [quy ước đặt tên](code-organization.md#quy-ước-đặt-tên-file), đồng bộ tên component/hook và import; tách hai màn `Topics.tsx` và `Limit.tsx` từ file AI chung. Đối chiếu AST của 194 file TS/TSX với commit trước, sau khi chuẩn hóa import và các identifier được đổi tên, không thấy thay đổi phần thân mã. Tên Callable, payload và schema giữ nguyên.
+
+Kiểm tra sau đổi tên trên Node.js 22.23.4: lint, strict typecheck, Functions/Vite build và 19 unit test đạt; 66 test emulator đạt trong 63,13 giây; 3 test trình duyệt đạt trong 40,6 giây. Functions được build lại sau khi xóa output cũ để các module còn sót không che lỗi import. Log local: `.local/naming-typecheck.log`, `.local/naming-lint.log`, `.local/naming-build.log`, `.local/naming-unit.log`, `.local/naming-body-audit.log`, `.local/naming-emulator.log`, `.local/naming-browser.log`. Các dịch vụ kiểm thử đã dừng.
+
 ## Review tổ chức code tiếp theo
 
 Đã refactor các file gom nhiều trách nhiệm thành các operation, component và hook theo feature; xem [bản đồ module](code-organization.md). API, schema, receipt và giao diện giữ nguyên. Toàn bộ `.ts`/`.tsx` trong `functions/src`, `admin-web/src` và `tools` hiện không có file vượt 300 dòng; file dài nhất 290 dòng. Đây là kết quả review trách nhiệm, không phải giới hạn dòng được dùng thay kiểm thử.

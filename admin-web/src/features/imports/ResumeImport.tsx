@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ImportPreview } from "../../models";
 import { api, apiError } from "../../services/api";
 import { useQuery } from "../../hooks/useQuery";
-import { Dialog, QueryState, Notice } from "../../components/ui";
+import { Dialog, QueryState, Notice } from "../../components/Ui";
 export function ResumeImport({
   wordSetId,
   onClose,

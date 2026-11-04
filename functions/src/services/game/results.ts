@@ -1,5 +1,5 @@
-import { objectId } from "../../domain/backend.js";
-import { gameRef } from "../../infrastructure/game/references.js";
+import { objectId } from "../../domain/values.js";
+import { gameRef } from "../../infrastructure/game/refs.js";
 import {
   checkVersion,
   command,

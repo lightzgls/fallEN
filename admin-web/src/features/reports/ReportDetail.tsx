@@ -1,7 +1,7 @@
-import { Notice, QueryState } from "../../components/ui";
+import { Notice, QueryState } from "../../components/Ui";
 import { useQuery } from "../../hooks/useQuery";
 import { api } from "../../services/api";
-import { categoryLabels, statusLabels } from "./report-labels";
+import { categoryLabels, statusLabels } from "./labels";
 import { ReportContext } from "./ReportContext";
 import { ReportStatusForm } from "./ReportStatusForm";
 import { ReportAudit } from "./ReportAudit";
