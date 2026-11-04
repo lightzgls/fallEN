@@ -1,81 +1,61 @@
-import { z } from "zod";
-import { objectId, sourceKey, sourceSchema } from "../../domain/values.js";
-import { userRef } from "../../infrastructure/learning/refs.js";
-import {
-  assertActive,
-  db,
-  parse,
-  requireDoc,
-  type Actor,
-  type Data,
-} from "../../shared/core.js";
-import { sourceWords } from "./sources.js";
-
-export async function getStudySource(actor: Actor, input: unknown) {
-  const req = parse(z.object({ source: sourceSchema }).strict(), input);
-  await assertActive(actor);
-  const result = await sourceWords(actor, req.source);
-  const bookmark = (
-    await userRef(actor, "flashcardPositions", sourceKey(req.source)).get()
-  ).data();
-  return {
-    ...result,
-    wordRefs: result.words.map((w: Data) => ({
-      wordId: w.wordId,
-      wordVersion: w.wordVersion,
-    })),
-    ...(bookmark ? { bookmark } : {}),
-  };
+import type { Actor } from "../../contracts/callable.js";
+import type {
+  SourceInput,
+  RatingContextInput,
+} from "../../contracts/learning/inputs.js";
+import type { StudyQueryStore } from "../../contracts/learning/store.js";
+import { requireRecord } from "../../domain/study-consistency.js";
+export function getStudySource(
+  store: StudyQueryStore,
+  actor: Actor,
+  req: SourceInput,
+) {
+  return store.read(actor, async (ctx) => {
+    const result = await ctx.source(req.source),
+      bookmark = await ctx.place(req.source);
+    return {
+      ...result,
+      wordRefs: result.words.map((w) => ({
+        wordId: w.wordId,
+        wordVersion: w.wordVersion,
+      })),
+      ...(bookmark ? { bookmark } : {}),
+    };
+  });
 }
-
-export async function getStudyPlace(actor: Actor, input: unknown) {
-  const req = parse(z.object({ source: sourceSchema }).strict(), input);
-  await assertActive(actor);
-  return (
-    (
-      await userRef(actor, "flashcardPositions", sourceKey(req.source)).get()
-    ).data() ?? null
+export function getStudyPlace(
+  store: StudyQueryStore,
+  actor: Actor,
+  req: SourceInput,
+) {
+  return store.read(
+    actor,
+    async (ctx) => (await ctx.place(req.source)) ?? null,
   );
 }
-
-export async function getRatingContext(actor: Actor, input: unknown) {
-  const req = parse(
-    z.object({ sessionId: objectId, wordId: objectId }).strict(),
-    input,
-  );
-  await assertActive(actor);
-  const study = requireDoc(
-    await userRef(actor, "studySessions", req.sessionId).get(),
-  );
-  requireDoc(
-    await db
-      .doc(
-        `users/${actor.uid}/studySessions/${req.sessionId}/items/${req.wordId}`,
-      )
-      .get(),
-  );
-  const memory = (
-    await userRef(actor, "wordProgress", req.wordId).get()
-  ).data();
-  if (study.mode === "FLASHCARD") {
-    const place = requireDoc(
-      await userRef(actor, "flashcardPositions", sourceKey(study.source)).get(),
-    );
+export function getRatingContext(
+  store: StudyQueryStore,
+  actor: Actor,
+  req: RatingContextInput,
+) {
+  return store.read(actor, async (ctx) => {
+    const study = requireRecord(await ctx.study(req.sessionId));
+    requireRecord(await ctx.item(req.sessionId, req.wordId));
+    const memory = await ctx.memory(req.wordId);
+    if (study.mode === "FLASHCARD") {
+      const place = requireRecord(await ctx.place(study.source));
+      return {
+        memoryVersion: memory?.version ?? 0,
+        placeVersion: place.version,
+      };
+    }
+    const plan = requireRecord(await ctx.plan(req.wordId)),
+      membership = requireRecord(await ctx.membership(req.wordId));
     return {
       memoryVersion: memory?.version ?? 0,
-      placeVersion: place.version,
+      planVersion: plan.version,
+      cycleId: plan.cycleId,
+      membershipVersion: membership.membershipVersion,
     };
-  }
-  const plan = requireDoc(
-    await userRef(actor, "srsSchedules", req.wordId).get(),
-  );
-  const membership = requireDoc(
-    await userRef(actor, "personalWords", req.wordId).get(),
-  );
-  return {
-    memoryVersion: memory?.version ?? 0,
-    planVersion: plan.version,
-    cycleId: plan.cycleId,
-    membershipVersion: membership.membershipVersion,
-  };
+  });
 }

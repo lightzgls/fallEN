@@ -1,115 +1,98 @@
-import { getAuth } from "firebase-admin/auth";
-import { Timestamp } from "firebase-admin/firestore";
-import { z } from "zod";
-import {
-  checkVersion,
-  command,
-  commandId,
-  db,
-  fail,
-  identifier,
-  parse,
-  requireDoc,
-  version,
-  type Actor,
-  type Data,
-} from "../../shared/core.js";
+import type { Actor } from "../../contracts/callable.js";
+import type {
+  EnsureProfileInput,
+  SaveProfileInput,
+} from "../../contracts/profile/requests.js";
+import type {
+  ProfileStore,
+  UserProfile,
+} from "../../contracts/profile/store.js";
+import { fail } from "../../shared/errors.js";
+import { checkVersion } from "../../shared/validation.js";
 
-export const avatarMode = z.enum(["DEFAULT", "PROVIDER", "CUSTOM"]);
-
-export async function ensureProfile(actor: Actor, raw: unknown): Promise<Data> {
-  const input = parse(
-    z
-      .object({ displayName: z.string().trim().min(1).max(50).optional() })
-      .strict(),
-    raw,
-  );
-  const authUser = await getAuth().getUser(actor.uid);
+export async function ensureProfile(
+  actor: Actor,
+  input: EnsureProfileInput,
+  store: ProfileStore,
+) {
+  const authUser = await store.authUser(actor.uid);
   if (authUser.disabled) fail("UNAUTHENTICATED");
-  return db.runTransaction(async (tx) => {
-    const gateRef = db.doc(`accountStates/${actor.uid}`),
-      userRef = db.doc(`users/${actor.uid}`);
-    const [gate, user] = await Promise.all([tx.get(gateRef), tx.get(userRef)]);
-    if (gate.data()?.status === "DELETING") fail("ACCOUNT_DELETING");
-    if (user.exists && gate.data()?.status === "ACTIVE") return user.data()!;
-    if (gate.exists && !user.exists) fail("PROFILE_PENDING");
-    const now = Timestamp.now();
+  return store.transaction(actor, false, async (tx) => {
+    const gate = await tx.readGate(),
+      user = await tx.readProfile();
+    if (gate?.status === "DELETING") fail("ACCOUNT_DELETING");
+    if (user && gate?.status === "ACTIVE") return user;
+    if (gate && !user) fail("PROFILE_PENDING");
     const providerName = authUser.displayName?.trim();
-    const displayName =
-      input.displayName ??
-      (providerName && providerName.length <= 50 ? providerName : "Người học");
-    const profile = {
+    const profile: UserProfile = {
       uid: actor.uid,
-      displayName,
+      displayName:
+        input.displayName ??
+        (providerName && providerName.length <= 50
+          ? providerName
+          : "Người học"),
       avatarMode: authUser.photoURL?.startsWith("https://")
         ? "PROVIDER"
         : "DEFAULT",
       profileVersion: 1,
-      createdAt: now,
-      updatedAt: now,
+      createdAt: tx.now,
+      updatedAt: tx.now,
     };
-    tx.create(userRef, profile);
-    tx.create(gateRef, {
+    tx.createProfile(profile, {
       uid: actor.uid,
       status: "ACTIVE",
       version: 1,
-      updatedAt: now,
+      updatedAt: tx.now,
     });
     return profile;
   });
 }
 
-export async function saveProfile(actor: Actor, raw: unknown): Promise<Data> {
-  const input = parse(
-    z
-      .object({
-        commandId,
-        expectedProfileVersion: version,
-        displayName: z.string().trim().min(1).max(50),
-        avatarMode,
-        avatarAssetId: identifier.optional(),
-      })
-      .strict(),
-    raw,
-  );
+export async function saveProfile(
+  actor: Actor,
+  input: SaveProfileInput,
+  store: ProfileStore,
+) {
   if ((input.avatarMode === "CUSTOM") !== Boolean(input.avatarAssetId))
     fail("VALIDATION_FAILED");
-  return command(actor, "saveProfile", input, async (tx, now) => {
-    const userRef = db.doc(`users/${actor.uid}`),
-      user = requireDoc(await tx.get(userRef));
+  return store.command(actor, "saveProfile", input, async (tx) => {
+    const user = (await tx.readProfile()) ?? fail("NOT_FOUND");
     checkVersion(user.profileVersion, input.expectedProfileVersion);
-    const nextAsset = input.avatarAssetId
-      ? db.doc(`users/${actor.uid}/profileAssets/${input.avatarAssetId}`)
+    const fresh = input.avatarAssetId
+      ? await tx.readAsset(input.avatarAssetId)
       : undefined;
-    const oldAsset = user.avatarAssetId
-      ? db.doc(`users/${actor.uid}/profileAssets/${user.avatarAssetId}`)
+    const previous = user.avatarAssetId
+      ? await tx.readAsset(user.avatarAssetId)
       : undefined;
-    const fresh = nextAsset ? (await tx.get(nextAsset)).data() : undefined;
-    const previous = oldAsset ? (await tx.get(oldAsset)).data() : undefined;
     if (
-      nextAsset &&
+      input.avatarAssetId &&
       (!fresh ||
         fresh.ownerUid !== actor.uid ||
         !["READY", "ACTIVE"].includes(fresh.state) ||
-        fresh.cleanupLeaseUntil?.toMillis() > now.toMillis())
+        (fresh.cleanupLeaseUntil?.getTime() ?? 0) > tx.now.getTime())
     )
       fail("AVATAR_UNAVAILABLE");
-    const updated: Data = {
+    const updated: UserProfile = {
       ...user,
       displayName: input.displayName,
       avatarMode: input.avatarMode,
       profileVersion: user.profileVersion + 1,
-      updatedAt: now,
+      updatedAt: tx.now,
     };
     delete updated.avatarAssetId;
     if (input.avatarAssetId) updated.avatarAssetId = input.avatarAssetId;
-    if (oldAsset && oldAsset.path !== nextAsset?.path && previous)
-      tx.update(oldAsset, {
+    if (
+      user.avatarAssetId &&
+      user.avatarAssetId !== input.avatarAssetId &&
+      previous
+    )
+      tx.patchAsset(user.avatarAssetId, {
         state: "RETIRING",
-        expiresAt: Timestamp.fromMillis(now.toMillis() + 24 * 3600_000),
+        expiresAt: new Date(tx.now.getTime() + 24 * 3600_000),
       });
-    if (nextAsset) tx.update(nextAsset, { state: "ACTIVE", expiresAt: null });
-    tx.set(userRef, updated);
+    if (input.avatarAssetId)
+      tx.patchAsset(input.avatarAssetId, { state: "ACTIVE", expiresAt: null });
+    tx.saveProfile(updated);
     return { user: updated, profileVersion: updated.profileVersion };
   });
 }

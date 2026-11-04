@@ -1,38 +1,17 @@
-import { z } from "zod";
 import { distance, normalizeKey } from "../../domain/dictionary/search-key.js";
-import {
-  read,
-  readWord,
-  readWordVersion,
-  resolveRelease,
-} from "../../infrastructure/dictionary/word-reader.js";
-import {
-  type SearchEntry,
-  searchIndex,
-} from "../../infrastructure/dictionary/search-index.js";
-import {
-  type Actor,
-  cursorDecode,
-  cursorEncode,
-  type Data,
-  fail,
-  identifier,
-  parse,
-} from "../../shared/core.js";
+import type {
+  DictionaryStore,
+  SearchEntry,
+} from "../../contracts/dictionary/store.js";
+import type { FindWordsInput } from "../../contracts/dictionary/requests.js";
+import { cursorDecode, cursorEncode } from "../../shared/values.js";
+import type { Data } from "../../shared/types.js";
+import { fail } from "../../shared/errors.js";
 
-export async function findWords(_actor: Actor, raw: unknown): Promise<Data> {
-  const input = parse(
-    z
-      .object({
-        query: z.string().trim().min(1).max(100),
-        partOfSpeech: z.string().trim().min(1).max(100).optional(),
-        cursor: z.string().max(4096).optional(),
-        releaseId: identifier.optional(),
-        pageSize: z.number().int().min(1).max(50).default(20),
-      })
-      .strict(),
-    raw,
-  );
+export async function findWords(
+  input: FindWordsInput,
+  store: DictionaryStore,
+): Promise<Data> {
   const query = normalizeKey(input.query);
   const cursor = input.cursor ? cursorDecode(input.cursor) : undefined;
   if (
@@ -42,8 +21,10 @@ export async function findWords(_actor: Actor, raw: unknown): Promise<Data> {
       (input.releaseId && input.releaseId !== cursor.releaseId))
   )
     fail("VALIDATION_FAILED");
-  const release = await resolveRelease(cursor?.releaseId ?? input.releaseId);
-  const entries = await searchIndex(release);
+  const release = await store.resolveRelease(
+    cursor?.releaseId ?? input.releaseId,
+  );
+  const entries = await store.searchIndex(release);
   const ranks = new Map<
     string,
     {
@@ -68,11 +49,9 @@ export async function findWords(_actor: Actor, raw: unknown): Promise<Data> {
     aliasesByWord.set(item.wordId, aliases);
   }
   for (const [wordId, aliases] of aliasesByWord) {
-    const entry = (
-      await read(`dictionaryReleases/${release.id}/entries/${wordId}`)
-    ).data();
+    const entry = await store.readEntry(release.id, wordId);
     if (!entry?.active) continue;
-    const word = await readWordVersion(wordId, entry.wordVersion);
+    const word = await store.readWordVersion(wordId, entry.wordVersion);
     if (
       input.partOfSpeech &&
       !word.meanings.some(
@@ -111,7 +90,7 @@ export async function findWords(_actor: Actor, raw: unknown): Promise<Data> {
     fail("VALIDATION_FAILED");
   const items = [];
   for (const item of sorted.slice(offset, offset + input.pageSize)) {
-    const word = await readWord(item.wordId, release.id);
+    const word = await store.readWord(item.wordId, release.id);
     items.push({ ...word, matchType: ["EXACT", "PREFIX", "FUZZY"][item.rank] });
   }
   const next = offset + input.pageSize;

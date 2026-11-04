@@ -1,30 +1,33 @@
-import { type Actor } from "../shared/types.js";
+import type { Actor } from "../contracts/callable.js";
+import type { DictionaryStore } from "../contracts/dictionary/store.js";
+import type {
+  ConnectionsInput,
+  FindWordsInput,
+  StudySourceInput,
+  WordInput,
+  WordVersionInput,
+} from "../contracts/dictionary/requests.js";
 import { findWords } from "./dictionary/search.js";
 import {
-  getWord,
-  getWordVersion,
   findConnections,
   getPublishedDecks,
   getStudySource,
+  getWord,
+  getWordVersion,
 } from "./dictionary/queries.js";
-export { sourceSchema } from "../domain/dictionary/source.js";
-export { type SourceWord } from "../domain/dictionary/source.js";
-export { type SourceRead } from "../domain/dictionary/source.js";
-export { resolveRelease } from "../infrastructure/dictionary/word-reader.js";
-export { readWordVersion } from "../infrastructure/dictionary/word-reader.js";
-export { currentEntry } from "../infrastructure/dictionary/word-reader.js";
-export { readWord } from "../infrastructure/dictionary/word-reader.js";
-export { readDeckSource } from "../infrastructure/dictionary/source-reader.js";
-export { readPersonalSource } from "../infrastructure/dictionary/source-reader.js";
-export { normalizeKey } from "../domain/dictionary/search-key.js";
-export const dictionaryHandlers: Record<
-  string,
-  (actor: Actor, input: unknown) => Promise<unknown>
-> = {
-  findWords: findWords,
-  getWord: getWord,
-  getWordVersion: getWordVersion,
-  findConnections: findConnections,
-  getPublishedDecks: getPublishedDecks,
-  getStudySource: getStudySource,
-};
+
+export function createDictionaryService(store: DictionaryStore) {
+  return {
+    findWords: (_actor: Actor, input: FindWordsInput) =>
+      findWords(input, store),
+    getWord: (_actor: Actor, input: WordInput) => getWord(input, store),
+    getWordVersion: (_actor: Actor, input: WordVersionInput) =>
+      getWordVersion(input, store),
+    findConnections: (_actor: Actor, input: ConnectionsInput) =>
+      findConnections(input, store),
+    getPublishedDecks: async (_actor: Actor, _input: Record<string, never>) =>
+      getPublishedDecks(store),
+    getStudySource: (actor: Actor, input: StudySourceInput) =>
+      getStudySource(actor, input, store),
+  };
+}

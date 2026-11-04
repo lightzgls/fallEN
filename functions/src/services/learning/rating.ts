@@ -1,47 +1,47 @@
+import type { Actor } from "../../contracts/callable.js";
+import type { RatingInput } from "../../contracts/learning/inputs.js";
+import type {
+  Memory,
+  Membership,
+  Rating,
+} from "../../contracts/learning/records.js";
+import type {
+  RatingContext,
+  RatingStore,
+} from "../../contracts/learning/store.js";
 import { stableId } from "../../domain/values.js";
 import { newPlan } from "../../domain/review-plan.js";
-import { stageActivity } from "../../infrastructure/learning/activity.js";
-import { userRef } from "../../infrastructure/learning/refs.js";
-import { command, dayKey, parse, type Actor } from "../../shared/core.js";
-import { ratingSchema, type RatingCommand } from "./rating-input.js";
+import { advanceActivity } from "../../domain/learning-activity.js";
+import { dayKey } from "../../shared/clock.js";
 import { readRatingState } from "./rating-state.js";
-
-export async function saveRating(actor: Actor, input: unknown) {
-  const req = parse(ratingSchema, input);
-  return command(actor, "saveRating", req, async (tx, now) => {
-    const state = await readRatingState(actor, req, tx, now);
-    return stageRatingOutcome(actor, req, state, tx, now);
+export function saveRating(store: RatingStore, actor: Actor, req: RatingInput) {
+  return store.command(actor, "saveRating", req, async (ctx, now) => {
+    const state = await readRatingState(ctx, req, now);
+    return stageRatingOutcome(actor, req, state, ctx, now);
   });
 }
-
 function stageRatingOutcome(
   actor: Actor,
-  req: RatingCommand,
+  req: RatingInput,
   state: Awaited<ReturnType<typeof readRatingState>>,
-  tx: FirebaseFirestore.Transaction,
-  now: FirebaseFirestore.Timestamp,
+  ctx: RatingContext,
+  now: Date,
 ) {
   const {
-    studyRef,
-    itemRef,
-    memoryRef,
-    membershipRef,
-    planRef,
-    eventRef,
     study,
     currentMemory,
     membership,
-    planSnapshot,
+    previousPlan,
     place,
-    placeRef,
     nextWordId,
     allItems,
-    activity,
+    today,
+    summary,
   } = state;
   let { plan } = state;
   const newlyRemembered =
     req.choice === "REMEMBERED" && !currentMemory.everRemembered;
-  const memory = {
+  const memory: Memory = {
     ...currentMemory,
     lastChoice: req.choice,
     lastRatedAt: now,
@@ -50,16 +50,16 @@ function stageRatingOutcome(
       ? { everRemembered: true, firstRememberedAt: now }
       : {}),
   };
-  const rating = {
+  const rating: Rating = {
     id: req.eventId,
     sessionId: req.sessionId,
     wordId: req.wordId,
     mode: study.mode,
     choice: req.choice,
     savedAt: now,
-    dayKey: dayKey(now.toDate()),
+    dayKey: dayKey(now),
     ...(study.mode === "SRS"
-      ? { previousLevel: planSnapshot.data()!.level, level: plan!.level }
+      ? { previousLevel: previousPlan!.level, level: plan!.level }
       : {}),
   };
   if (
@@ -67,7 +67,7 @@ function stageRatingOutcome(
     req.choice === "NOT_REMEMBERED" &&
     !membership?.active
   ) {
-    const autoSaved = {
+    const saved: Membership = {
       wordId: req.wordId,
       active: true,
       addedAt: now,
@@ -83,33 +83,41 @@ function stageRatingOutcome(
     plan = newPlan(
       req.wordId,
       stableId(actor.uid, "autoCycle", req.eventId),
-      now.toDate(),
+      now,
     );
-    tx.set(membershipRef, autoSaved);
-    tx.set(planRef, plan);
-  } else if (study.mode === "SRS") tx.set(planRef, plan!);
-  tx.create(eventRef, rating);
-  tx.set(memoryRef, memory);
-  tx.update(itemRef, { ratedEventId: req.eventId });
-  if (place && placeRef) {
-    tx.set(placeRef, place);
-    tx.update(studyRef, { placeVersion: place.version });
+    ctx.saveMembership(saved);
+    ctx.savePlan(plan);
+  } else if (study.mode === "SRS") ctx.savePlan(plan!);
+  ctx.createRating(rating);
+  ctx.saveMemory(memory);
+  ctx.markRated(req.sessionId, req.wordId, req.eventId);
+  if (place) {
+    ctx.savePlace(place);
+    ctx.updateStudy(req.sessionId, { placeVersion: place.version });
   }
-  stageActivity(tx, activity, study.mode, 1, newlyRemembered ? 1 : 0);
+  const activity = advanceActivity(
+    now,
+    today,
+    summary,
+    study.mode,
+    1,
+    newlyRemembered ? 1 : 0,
+  );
+  if (activity.day) ctx.saveDay(activity.day);
+  ctx.saveSummary(activity.summary);
   if (study.source.sourceType === "SYSTEM_DECK")
-    tx.set(userRef(actor, "deckActivity", study.source.wordSetId), {
-      wordSetId: study.source.wordSetId,
+    ctx.saveRecentSet({
+      wordSetId: study.source.wordSetId!,
       lastActivityAt: now,
     });
-  const completed = allItems.docs.every(
-    (s) => s.id === req.wordId || !!s.data().ratedEventId,
-  );
   return {
     rating,
     memory,
     ...(plan ? { plan } : {}),
     ...(place ? { place } : {}),
     ...(nextWordId ? { nextWordId } : {}),
-    completed,
+    completed: allItems.every(
+      (i) => i.wordId === req.wordId || !!i.ratedEventId,
+    ),
   };
 }

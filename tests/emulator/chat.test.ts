@@ -5,7 +5,7 @@ import {
   serialize,
   type Data,
 } from "../../functions/src/shared/core.js";
-import { createChatHandlers } from "../../functions/src/services/chat.js";
+import { createChatHandlers } from "../../functions/src/routes/chat.js";
 import type { ChatApi, ChatContext } from "../../functions/src/domain/chat.js";
 import {
   businessCode,
@@ -21,12 +21,10 @@ function provider() {
     reply: vi
       .fn<ChatApi["reply"]>()
       .mockResolvedValue({ reply: "A private assistant response." }),
-    giveFeedback: vi
-      .fn<ChatApi["giveFeedback"]>()
-      .mockResolvedValue({
-        strengths: ["You kept the conversation going."],
-        tips: ["Try adding one detail."],
-      }),
+    giveFeedback: vi.fn<ChatApi["giveFeedback"]>().mockResolvedValue({
+      strengths: ["You kept the conversation going."],
+      tips: ["Try adding one detail."],
+    }),
   };
 }
 const userPath = (suffix: string) => `users/${learner.uid}/${suffix}`;
@@ -39,6 +37,49 @@ const startInput = (commandId: string, allowSupplement = true) => ({
 beforeEach(async () => {
   await resetData();
   await seedData();
+});
+
+describe("chat command collisions across operations", () => {
+  it.each(["SUCCEEDED", "IN_PROGRESS"])(
+    "rejects a reused %s command before decoding its unrelated receipt or checking chat versions",
+    async (status) => {
+      const handlers = createChatHandlers(provider());
+      await db.doc(userPath("commands/other-operation")).set({
+        kind: "saveWord",
+        requestHash: "unrelated-request",
+        status,
+        ...(status === "SUCCEEDED"
+          ? { receipt: { savedWord: { wordId: "book" } } }
+          : {}),
+        createdAt: new Date(),
+      });
+      expect(
+        await businessCode(
+          handlers.startChat(learner, startInput("other-operation")),
+        ),
+      ).toBe("COMMAND_REUSED");
+      expect(await read(userPath(`aiDailyUsage/${dayKey()}`))).toBeUndefined();
+
+      const chat = await handlers.startChat(learner, startInput("fresh-chat"));
+      expect(
+        await businessCode(
+          handlers.endChat(learner, {
+            sessionId: chat.id,
+            commandId: "other-operation",
+            expectedVersion: 0,
+          }),
+        ),
+      ).toBe("COMMAND_REUSED");
+      expect(await read(userPath(`aiSessions/${chat.id}`))).toMatchObject({
+        status: "ACTIVE",
+        version: 1,
+      });
+      expect(await read(userPath("commands/other-operation"))).toMatchObject({
+        kind: "saveWord",
+        status,
+      });
+    },
+  );
 });
 
 describe("AI successful-session quota and reference selection", () => {
@@ -82,23 +123,19 @@ describe("AI successful-session quota and reference selection", () => {
       "station",
       "ticket",
     ]) {
-      await db
-        .doc(userPath(`wordProgress/${wordId}`))
-        .set({
-          wordId,
-          lastChoice: "REMEMBERED",
-          everRemembered: true,
-          version: 1,
-        });
-    }
-    await db
-      .doc(userPath("wordProgress/book"))
-      .set({
-        wordId: "book",
-        lastChoice: "NOT_REMEMBERED",
+      await db.doc(userPath(`wordProgress/${wordId}`)).set({
+        wordId,
+        lastChoice: "REMEMBERED",
         everRemembered: true,
-        version: 2,
+        version: 1,
       });
+    }
+    await db.doc(userPath("wordProgress/book")).set({
+      wordId: "book",
+      lastChoice: "NOT_REMEMBERED",
+      everRemembered: true,
+      version: 2,
+    });
     const handlers = createChatHandlers(provider());
     const chat = (await handlers.startChat(
       learner,

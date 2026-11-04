@@ -8,10 +8,10 @@ import { onTaskDispatched } from "firebase-functions/v2/tasks";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { z } from "zod";
 import { type Actor, parse, identifier, fail } from "../shared/core.js";
-import { runDeletionJob } from "../services/deletion.js";
-import { cleanupAvatars } from "../services/profile.js";
-import { prepareGame } from "../services/game.js";
-import { resumeImport, resumePublish } from "../services/content.js";
+import { runDeletionJob } from "../routes/deletion.js";
+import { cleanupAvatars } from "../routes/profile.js";
+import { prepareGame } from "../routes/game.js";
+import { resumeImport, resumePublish } from "../routes/content.js";
 
 const region = process.env.FUNCTION_REGION || "asia-southeast1";
 async function enqueue(

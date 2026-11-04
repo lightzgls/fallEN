@@ -1,50 +1,33 @@
-import { z } from "zod";
-import {
-  objectId,
-  sourceKey,
-  sourceSchema,
-  stableId,
-} from "../../domain/values.js";
-import { dataWithId, userRef } from "../../infrastructure/learning/refs.js";
-import {
-  command,
-  db,
-  fail,
-  parse,
-  requireDoc,
-  type Actor,
-  type Data,
-} from "../../shared/core.js";
+import type { Actor } from "../../contracts/callable.js";
+import type {
+  StartStudyInput,
+  StartReviewInput,
+  EndStudyInput,
+} from "../../contracts/learning/inputs.js";
+import type {
+  Study,
+  Place,
+  StudyItem,
+} from "../../contracts/learning/records.js";
+import type { StudyStore } from "../../contracts/learning/store.js";
+import { stableId } from "../../domain/values.js";
+import { requireRecord } from "../../domain/study-consistency.js";
+import { dayKey } from "../../shared/clock.js";
+import { fail } from "../../shared/errors.js";
 import { dueWords } from "./due-words.js";
-import { sourceWords } from "./sources.js";
-
-export const startStudySchema = z
-  .object({
-    source: sourceSchema,
-    startMode: z.enum(["START_OVER", "CONTINUE", "FROM_WORD"]),
-    startWordId: objectId.optional(),
-    commandId: objectId,
-  })
-  .strict();
-
-export async function startStudy(actor: Actor, input: unknown) {
-  const req = parse(startStudySchema, input);
-  const sessionId = stableId(actor.uid, "study", req.commandId);
-  return command(actor, "startStudy", req, async (tx, now) => {
-    const source = await sourceWords(actor, req.source, tx);
+export function startStudy(
+  store: StudyStore,
+  actor: Actor,
+  req: StartStudyInput,
+) {
+  return store.command(actor, "startStudy", req, async (ctx, now) => {
+    const source = await ctx.source(req.source);
     if (!source.words.length)
       fail("EMPTY_SOURCE", "This source contains no available words");
-    const placeRef = userRef(
-      actor,
-      "flashcardPositions",
-      sourceKey(req.source),
-    );
-    const currentPlace = (await tx.get(placeRef)).data();
+    const currentPlace = await ctx.place(req.source);
     let startIndex = 0;
     if (req.startMode === "FROM_WORD") {
-      startIndex = source.words.findIndex(
-        (w: Data) => w.wordId === req.startWordId,
-      );
+      startIndex = source.words.findIndex((w) => w.wordId === req.startWordId);
       if (startIndex < 0)
         fail("CONFLICT", "Requested word is no longer in this source");
     } else if (
@@ -53,32 +36,32 @@ export async function startStudy(actor: Actor, input: unknown) {
       !currentPlace.completed
     ) {
       startIndex = source.words.findIndex(
-        (w: Data) => w.wordId === currentPlace.nextWordId,
+        (w) => w.wordId === currentPlace.nextWordId,
       );
       if (startIndex < 0)
         fail("CONFLICT", "Saved position is no longer available");
     }
-    const planned = source.words
+    const planned: StudyItem[] = source.words
       .slice(startIndex)
-      .map((w: Data, position: number) => ({
+      .map((w, position) => ({
         wordId: w.wordId,
         wordVersion: w.wordVersion,
         position,
       }));
-    const place = {
+    const place: Place = {
       source: source.source,
       nextWordId: planned[0].wordId,
       completed: false,
       updatedAt: now,
       version: (currentPlace?.version ?? 0) + 1,
     };
-    const study = {
-      id: sessionId,
+    const study: Study = {
+      id: stableId(actor.uid, "study", req.commandId),
       mode: "FLASHCARD",
       source: source.source,
       startWordId: planned[0].wordId,
       plannedCardCount: planned.length,
-      plannedWords: planned.map(({ wordId, wordVersion }: Data) => ({
+      plannedWords: planned.map(({ wordId, wordVersion }) => ({
         wordId,
         wordVersion,
       })),
@@ -86,26 +69,21 @@ export async function startStudy(actor: Actor, input: unknown) {
       startedAt: now,
       placeVersion: place.version,
     };
-    tx.set(userRef(actor, "studySessions", sessionId), study);
-    for (const item of planned)
-      tx.set(
-        db.doc(
-          `users/${actor.uid}/studySessions/${sessionId}/items/${item.wordId}`,
-        ),
-        item,
-      );
-    tx.set(placeRef, place);
+    ctx.saveStudy(study);
+    ctx.saveItems(study.id, planned);
+    ctx.savePlace(place);
     return study;
   });
 }
-
-export async function startReview(actor: Actor, input: unknown) {
-  const req = parse(z.object({ commandId: objectId }).strict(), input);
-  const sessionId = stableId(actor.uid, "review", req.commandId);
-  return command(actor, "startReview", req, async (tx, now) => {
-    const due = await dueWords(actor, tx);
+export function startReview(
+  store: StudyStore,
+  actor: Actor,
+  req: StartReviewInput,
+) {
+  return store.command(actor, "startReview", req, async (ctx, now) => {
+    const due = await dueWords(ctx, dayKey(now));
     if (!due.length) fail("EMPTY_SOURCE", "No words are due for review");
-    const planned = due.map((item, position) => ({
+    const planned: StudyItem[] = due.map((item, position) => ({
       wordId: item.wordId,
       wordVersion: item.word.version,
       position,
@@ -113,8 +91,8 @@ export async function startReview(actor: Actor, input: unknown) {
       planVersion: item.plan.version,
       membershipVersion: item.membershipVersion,
     }));
-    const study = {
-      id: sessionId,
+    const study: Study = {
+      id: stableId(actor.uid, "review", req.commandId),
       mode: "SRS",
       source: { sourceType: "PERSONAL_VOCABULARY" },
       startWordId: planned[0].wordId,
@@ -126,45 +104,27 @@ export async function startReview(actor: Actor, input: unknown) {
       status: "ACTIVE",
       startedAt: now,
     };
-    tx.set(userRef(actor, "studySessions", sessionId), study);
-    for (const item of planned)
-      tx.set(
-        db.doc(
-          `users/${actor.uid}/studySessions/${sessionId}/items/${item.wordId}`,
-        ),
-        item,
-      );
+    ctx.saveStudy(study);
+    ctx.saveItems(study.id, planned);
     return study;
   });
 }
-
-export async function endStudy(actor: Actor, input: unknown) {
-  const req = parse(
-    z.object({ sessionId: objectId, commandId: objectId }).strict(),
-    input,
-  );
-  return command(actor, "endStudy", req, async (tx, now) => {
-    const ref = userRef(actor, "studySessions", req.sessionId);
-    const study = requireDoc(await tx.get(ref));
-    const ratings = await tx.get(
-      db
-        .collection(`users/${actor.uid}/assessmentEvents`)
-        .where("sessionId", "==", req.sessionId),
-    );
-    const remembered = ratings.docs.filter(
-      (s) => s.data().choice === "REMEMBERED",
-    ).length;
+export function endStudy(store: StudyStore, actor: Actor, req: EndStudyInput) {
+  return store.command(actor, "endStudy", req, async (ctx, now) => {
+    const study = requireRecord(await ctx.study(req.sessionId)),
+      ratings = await ctx.ratings(req.sessionId),
+      remembered = ratings.filter((r) => r.choice === "REMEMBERED").length;
     const result = {
       sessionId: req.sessionId,
       plannedCardCount: study.plannedCardCount,
-      ratedCount: ratings.size,
+      ratedCount: ratings.length,
       rememberedCount: remembered,
-      notRememberedCount: ratings.size - remembered,
-      unratedCount: study.plannedCardCount - ratings.size,
-      ratings: ratings.docs.map(dataWithId),
+      notRememberedCount: ratings.length - remembered,
+      unratedCount: study.plannedCardCount - ratings.length,
+      ratings,
     };
     if (study.status === "ACTIVE")
-      tx.update(ref, { status: "FINISHED", endedAt: now });
+      ctx.updateStudy(study.id, { status: "FINISHED", endedAt: now });
     return result;
   });
 }

@@ -1,109 +1,91 @@
-import { FieldValue } from "firebase-admin/firestore";
+import type { Actor } from "../../contracts/callable.js";
+import type { ImportApplicationStore } from "../../contracts/content/ports.js";
+import type { RecordData } from "../../contracts/content/records.js";
 import {
   businessErrorCode,
   isPermanentJobFailure,
 } from "../../domain/job-errors.js";
-import { importRef } from "../../infrastructure/content/refs.js";
-import {
-  assertActive,
-  assertAdmin,
-  db,
-  fail,
-  requireDoc,
-  type Actor,
-  type Data,
-} from "../../shared/core.js";
+import { fail } from "../../shared/errors.js";
+import { required } from "./required.js";
 import { applyImportRow } from "./apply-row.js";
-export async function resumeImport(
-  actor: Actor,
-  importId: string,
-  commandId: string,
-): Promise<Data> {
-  try {
-    return await applyImportRows(actor, importId, commandId);
-  } catch (error) {
-    const code = businessErrorCode(error);
-    if (isPermanentJobFailure(code)) {
-      await db.runTransaction(async (tx) => {
-        const batchRef = importRef(importId);
-        const cmdRef = db.doc(`users/${actor.uid}/commands/${commandId}`);
-        const [batchSnapshot, commandSnapshot] = await tx.getAll(
-          batchRef,
-          cmdRef,
-        );
+export function createImportWorker(store: ImportApplicationStore) {
+  async function resumeImport(
+    actor: Actor,
+    importId: string,
+    commandId: string,
+  ): Promise<RecordData> {
+    try {
+      const rows = await store.rows(importId);
+      for (const row of rows)
+        await applyImportRow(store, actor, importId, row.id, commandId);
+      return await store.transaction(actor, async (tx) => {
+        const [batch, command] = await Promise.all([
+          tx.batch(importId),
+          tx.processedCommand(actor.uid, commandId),
+        ]);
+        if (command?.status === "SUCCEEDED") return required(command.receipt);
+        const current = required(batch),
+          rows = await tx.rows(importId);
         if (
-          batchSnapshot.data()?.status === "APPLYING" &&
-          batchSnapshot.data()?.applyCommandId === commandId &&
-          commandSnapshot.data()?.status === "IN_PROGRESS"
-        ) {
-          tx.update(batchRef, { status: "FAILED", error: { code } });
-          tx.update(cmdRef, {
-            status: "FAILED",
-            error: { code },
-            progress: FieldValue.delete(),
-          });
-        }
+          current.applyCommandId !== commandId ||
+          rows.some((row) => !["APPLIED", "SKIPPED"].includes(row.status))
+        )
+          fail("CONFLICT");
+        const receipt = {
+          importId,
+          appliedRowIds: rows
+            .filter((row) => row.status === "APPLIED")
+            .map((row) => row.id),
+          skippedRowIds: rows
+            .filter((row) => row.status === "SKIPPED")
+            .map((row) => row.id),
+          errors: [],
+          draftVersion: current.progressDraftVersion,
+        };
+        tx.stageBatch(importId, { status: "APPLIED" }, "patch");
+        tx.stageCommand(
+          actor.uid,
+          commandId,
+          { status: "SUCCEEDED", receipt },
+          "patch",
+          ["progress"],
+        );
+        return receipt;
       });
+    } catch (error) {
+      const code = businessErrorCode(error);
+      if (isPermanentJobFailure(code))
+        await store.transaction(
+          actor,
+          async (tx) => {
+            const [batch, command] = await Promise.all([
+              tx.batch(importId),
+              tx.processedCommand(actor.uid, commandId),
+            ]);
+            if (
+              batch?.status === "APPLYING" &&
+              batch.applyCommandId === commandId &&
+              command?.status === "IN_PROGRESS"
+            ) {
+              tx.stageBatch(
+                importId,
+                { status: "FAILED", error: { code } },
+                "patch",
+              );
+              tx.stageCommand(
+                actor.uid,
+                commandId,
+                { status: "FAILED", error: { code } },
+                "patch",
+                ["progress"],
+              );
+            }
+            return {};
+          },
+          false,
+        );
+      throw error;
     }
-    throw error;
   }
-}
-
-export async function applyImportRows(
-  actor: Actor,
-  importId: string,
-  commandId: string,
-): Promise<Data> {
-  assertAdmin(actor);
-  const batchRef = importRef(importId);
-  const cmdRef = db.doc(`users/${actor.uid}/commands/${commandId}`);
-  const rows = await batchRef.collection("rows").orderBy("rowNumber").get();
-  for (const rowSnapshot of rows.docs) {
-    await db.runTransaction((tx) =>
-      applyImportRow(actor, commandId, batchRef, rowSnapshot.ref, cmdRef, tx),
-    );
-  }
-  return finishImportApplication(actor, importId, commandId);
-}
-
-async function finishImportApplication(
-  actor: Actor,
-  importId: string,
-  commandId: string,
-): Promise<Data> {
-  const batchRef = importRef(importId);
-  const cmdRef = db.doc(`users/${actor.uid}/commands/${commandId}`);
-  return db.runTransaction(async (tx) => {
-    await assertActive(actor, tx);
-    const [batchSnapshot, cmdSnapshot] = await tx.getAll(batchRef, cmdRef);
-    if (cmdSnapshot.data()?.status === "SUCCEEDED")
-      return cmdSnapshot.data()!.receipt;
-    const current = requireDoc(batchSnapshot);
-    const rowSnapshots = await tx.get(batchRef.collection("rows"));
-    if (
-      current.applyCommandId !== commandId ||
-      rowSnapshots.docs.some(
-        (s) => !["APPLIED", "SKIPPED"].includes(s.data().status),
-      )
-    )
-      fail("CONFLICT");
-    const receipt = {
-      importId,
-      appliedRowIds: rowSnapshots.docs
-        .filter((s) => s.data().status === "APPLIED")
-        .map((s) => s.id),
-      skippedRowIds: rowSnapshots.docs
-        .filter((s) => s.data().status === "SKIPPED")
-        .map((s) => s.id),
-      errors: [],
-      draftVersion: current.progressDraftVersion,
-    };
-    tx.update(batchRef, { status: "APPLIED" });
-    tx.update(cmdRef, {
-      status: "SUCCEEDED",
-      receipt,
-      progress: FieldValue.delete(),
-    });
-    return receipt;
-  });
+  return { resumeImport };
 }

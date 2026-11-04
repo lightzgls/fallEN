@@ -1,65 +1,30 @@
-import { Timestamp } from "firebase-admin/firestore";
-import { entrySchema } from "../../domain/content.js";
-import { revisionRef } from "../../infrastructure/content/refs.js";
-import {
-  assertActive,
-  fail,
-  parse,
-  requireDoc,
-  type Actor,
-  type Data,
-} from "../../shared/core.js";
-import { resolveRelease } from "../dictionary.js";
-import { assertDraft, validateEntries } from "./validation.js";
-export async function applyImportRow(
-  actor: Actor,
-  commandId: string,
-  batchRef: FirebaseFirestore.DocumentReference,
-  rowRef: FirebaseFirestore.DocumentReference,
-  cmdRef: FirebaseFirestore.DocumentReference,
-  tx: FirebaseFirestore.Transaction,
-) {
-  await assertActive(actor, tx);
-  const [batchSnapshot, rowSnap, cmdSnapshot] = await tx.getAll(
-    batchRef,
-    rowRef,
-    cmdRef,
-  );
-  const current = requireDoc(batchSnapshot);
-  const row = requireDoc(rowSnap);
-  if (
-    cmdSnapshot.data()?.status === "SUCCEEDED" ||
-    ["APPLIED", "SKIPPED"].includes(row.status)
-  )
-    return;
-  if (current.status !== "APPLYING" || current.applyCommandId !== commandId)
-    fail("CONFLICT");
-  const ref = revisionRef(current.wordSetId, current.revisionId);
-  const revision = requireDoc(await tx.get(ref));
-  assertDraft(revision);
-  if (revision.version !== current.progressDraftVersion) fail("IMPORT_STALE");
-  const release = await resolveRelease(undefined, tx);
-  if (release.id !== current.releaseId) fail("IMPORT_STALE");
-  if (
-    current.skippedRowIds.includes(row.id) ||
-    current.duplicateChoices[row.id] === "SKIP"
-  ) {
-    tx.update(rowRef, { status: "SKIPPED" });
-    return;
-  }
-  const existingEntries = await tx.get(
-    ref.collection("words").orderBy("position"),
-  );
-  const existing = existingEntries.docs.find(
-    (s) => s.id === row.resolvedWordId,
-  );
-  const data: Data = {
-    wordId: row.resolvedWordId,
-    wordVersion: row.wordVersion,
+import type { Actor } from "../../contracts/callable.js";
+import type {
+  ImportApplicationStore,
+  ImportApplicationTransaction,
+} from "../../contracts/content/ports.js";
+import type {
+  SetWord,
+  ImportRowRecord,
+  SetWordRecord,
+  BatchRecord,
+} from "../../contracts/content/records.js";
+import { assertDraft } from "../../domain/content-rules.js";
+import { fail } from "../../shared/errors.js";
+import { required } from "./required.js";
+import { validateEntries } from "./validation.js";
+function appliedEntry(
+  row: ImportRowRecord,
+  existing: SetWordRecord | undefined,
+  entries: SetWordRecord[],
+): SetWord {
+  const entry: SetWord = {
+    wordId: required(row.resolvedWordId, "IMPORT_STALE"),
+    wordVersion: required(row.wordVersion, "IMPORT_STALE"),
     position:
-      existing?.data().position ??
+      existing?.position ??
       row.input.position ??
-      Math.max(-1, ...existingEntries.docs.map((s) => s.data().position)) + 1,
+      Math.max(-1, ...entries.map((entry) => entry.position)) + 1,
     focusMeaningId: row.focusMeaningId,
   };
   for (const field of [
@@ -67,37 +32,111 @@ export async function applyImportRow(
     "exampleTranslation",
     "imageAssetId",
     "imageAlt",
-  ]) {
-    const value = row.input[field] ?? existing?.data()[field];
-    if (value !== undefined) data[field] = value;
+  ] as const) {
+    const value = row.input[field] ?? existing?.[field];
+    if (value !== undefined) entry[field] = value;
   }
-  const entry = parse(entrySchema, data);
-  await validateEntries(
-    [entry],
-    { name: revision.name, topic: revision.topic },
-    tx,
-  );
   if (
-    existingEntries.docs.some(
-      (s) => s.id !== entry.wordId && s.data().position === entry.position,
+    !Number.isInteger(entry.position) ||
+    entry.position < 0 ||
+    !!entry.example !== !!entry.exampleTranslation ||
+    (entry.imageAssetId && !entry.imageAlt)
+  )
+    fail("VALIDATION_FAILED", "Import entry is invalid");
+  return entry;
+}
+export async function applyImportRow(
+  store: ImportApplicationStore,
+  actor: Actor,
+  importId: string,
+  rowId: string,
+  commandId: string,
+): Promise<void> {
+  await store.transaction(actor, async (tx, now) => {
+    const [batch, row, command] = await Promise.all([
+      tx.batch(importId),
+      tx.row(importId, rowId),
+      tx.processedCommand(actor.uid, commandId),
+    ]);
+    const current = required(batch),
+      currentRow = required(row);
+    if (
+      command?.status === "SUCCEEDED" ||
+      ["APPLIED", "SKIPPED"].includes(currentRow.status)
+    )
+      return {};
+    if (current.status !== "APPLYING" || current.applyCommandId !== commandId)
+      fail("CONFLICT");
+    const revision = required(
+      await tx.revision(current.wordSetId, current.revisionId),
+    );
+    assertDraft(revision);
+    if (revision.version !== current.progressDraftVersion) fail("IMPORT_STALE");
+    const release = await tx.release();
+    if (release.id !== current.releaseId) fail("IMPORT_STALE");
+    if (
+      current.skippedRowIds.includes(currentRow.id) ||
+      current.duplicateChoices?.[currentRow.id] === "SKIP"
+    ) {
+      tx.stageRow(importId, rowId, { status: "SKIPPED" }, "patch");
+      return {};
+    }
+    await writeImportedEntry(tx, current, currentRow, now);
+    return {};
+  });
+}
+async function writeImportedEntry(
+  tx: ImportApplicationTransaction,
+  batch: BatchRecord,
+  row: ImportRowRecord,
+  now: Date,
+) {
+  const entries = await tx.entries(batch.wordSetId, batch.revisionId),
+    existing = entries.find((entry) => entry.wordId === row.resolvedWordId);
+  const entry = appliedEntry(row, existing, entries),
+    revision = required(await tx.revision(batch.wordSetId, batch.revisionId));
+  await validateEntries(tx, [entry], {
+    name: revision.name,
+    topic: revision.topic,
+  });
+  if (
+    entries.some(
+      (other) =>
+        other.wordId !== entry.wordId && other.position === entry.position,
     )
   )
     fail("VALIDATION_FAILED", "Import position conflicts with another word");
-  if (existing && current.duplicateChoices[row.id] !== "UPDATE")
+  if (existing && batch.duplicateChoices?.[row.id] !== "UPDATE")
     fail("IMPORT_STALE", "Word became a duplicate after preview");
-  tx.set(ref.collection("words").doc(entry.wordId), {
-    ...entry,
-    revisionId: current.revisionId,
-    wordSetId: current.wordSetId,
-  });
-  tx.update(ref, { version: revision.version + 1 });
-  tx.update(rowRef, {
-    status: "APPLIED",
-    operation: existing ? "UPDATE" : "ADD",
-    appliedAt: Timestamp.now(),
-  });
-  tx.update(batchRef, {
-    progressDraftVersion: revision.version + 1,
-    draftVersion: revision.version + 1,
-  });
+  tx.stageEntry(
+    batch.wordSetId,
+    batch.revisionId,
+    entry.wordId,
+    { ...entry, revisionId: batch.revisionId, wordSetId: batch.wordSetId },
+    "replace",
+  );
+  tx.stageRevision(
+    batch.wordSetId,
+    batch.revisionId,
+    { version: revision.version + 1 },
+    "patch",
+  );
+  tx.stageRow(
+    batch.importId,
+    row.id,
+    {
+      status: "APPLIED",
+      operation: existing ? "UPDATE" : "ADD",
+      appliedAt: now,
+    },
+    "patch",
+  );
+  tx.stageBatch(
+    batch.importId,
+    {
+      progressDraftVersion: revision.version + 1,
+      draftVersion: revision.version + 1,
+    },
+    "patch",
+  );
 }

@@ -1,10 +1,8 @@
 import { Timestamp, type DocumentReference } from "firebase-admin/firestore";
 import { db } from "../../functions/src/infrastructure/firebase/runtime.js";
 import { fail } from "../../functions/src/shared/errors.js";
-import {
-  checkVersion,
-  requireDoc,
-} from "../../functions/src/shared/validation.js";
+import { checkVersion } from "../../functions/src/shared/validation.js";
+import { requireDoc } from "../../functions/src/infrastructure/firebase/records.js";
 import { type DictionaryManifest } from "./manifest.js";
 export async function commitRelease(
   manifest: DictionaryManifest,

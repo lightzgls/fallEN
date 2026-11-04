@@ -1,24 +1,37 @@
-import { endChatSchema } from "../../domain/chat-commands.js";
-import { type ChatApi } from "../../domain/chat.js";
-import { type Actor, type Data } from "../../shared/types.js";
-import { assertActive } from "../../shared/access.js";
-import { parse } from "../../shared/validation.js";
-import {
-  beginChatEnding,
-  commitChatSummary,
-} from "../../infrastructure/chat/summary-store.js";
+import type { Actor } from "../../contracts/callable.js";
+import type { ChatStore, ReplyMemory } from "../../contracts/chat/store.js";
+import type { EndChatCommand } from "../../domain/chat-commands.js";
+import type { ChatApi } from "../../domain/chat.js";
 import { deliveredContext } from "./context.js";
 import { collectSummaryFeedback } from "./feedback.js";
+import { beginChatEnding, commitChatSummary } from "./ending.js";
+
 export async function endChat(
-  actor: Actor,
-  raw: unknown,
+  store: ChatStore,
+  memory: ReplyMemory,
   api: ChatApi,
-): Promise<Data> {
-  const req = parse(endChatSchema, raw);
-  await assertActive(actor);
-  if (req.context) await deliveredContext(actor, req.sessionId, req.context);
-  const begun = await beginChatEnding(actor, req);
-  if (begun.summary) return begun.summary;
-  const feedback = await collectSummaryFeedback(actor, req, begun.chat, api);
-  return commitChatSummary(actor, req, begun.chat, feedback);
+  actor: Actor,
+  req: EndChatCommand,
+) {
+  await store.assertActive(actor);
+  if (req.context)
+    await deliveredContext(store, actor, req.sessionId, req.context);
+  const begun = await beginChatEnding(store, actor, req);
+  if ("summary" in begun) return begun.summary;
+  const feedback = await collectSummaryFeedback(
+    store,
+    actor,
+    req,
+    begun.chat,
+    api,
+  );
+  const summary = await commitChatSummary(
+    store,
+    actor,
+    req,
+    begun.chat,
+    feedback,
+  );
+  memory.clearSession(actor, req.sessionId);
+  return summary;
 }

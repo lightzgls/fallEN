@@ -1,85 +1,61 @@
-import { z } from "zod";
-import { type ReferenceWord } from "../../domain/chat.js";
-import { chatPath } from "../../infrastructure/chat/refs.js";
-import {
-  type Actor,
-  type Data,
-  assertActive,
-  command,
-  commandId,
-  dayKey,
-  db,
-  fail,
-  hash,
-  id,
-  identifier,
-  parse,
-  requireDoc,
-} from "../../shared/core.js";
+import type { Actor } from "../../contracts/callable.js";
+import type { StartChatInput } from "../../contracts/chat/requests.js";
+import type { ChatSession } from "../../contracts/chat/records.js";
+import type { ChatStore } from "../../contracts/chat/store.js";
+import { dayKey } from "../../shared/clock.js";
+import { fail } from "../../shared/errors.js";
+import { hash, id } from "../../shared/values.js";
 import { candidates } from "./context.js";
 
-export async function startChat(actor: Actor, raw: unknown): Promise<Data> {
-  const req = parse(
-    z
-      .object({
-        wordSetId: identifier,
-        scenarioId: identifier,
-        allowSupplement: z.boolean(),
-        commandId,
-      })
-      .strict(),
-    raw,
-  );
-  const existing = (
-    await db.doc(`users/${actor.uid}/commands/${req.commandId}`).get()
-  ).data();
+export async function startChat(
+  store: Pick<
+    ChatStore,
+    "startReceipt" | "decodeStartReceipt" | "assertActive" | "startCommand"
+  >,
+  actor: Actor,
+  req: StartChatInput,
+) {
+  const existing = await store.startReceipt(actor, req.commandId);
   if (existing) {
-    await assertActive(actor);
+    await store.assertActive(actor);
     if (
       existing.kind !== "startChat" ||
       existing.requestHash !== hash({ kind: "startChat", input: req })
     )
       fail("COMMAND_REUSED");
-    return existing.receipt;
+    return store.decodeStartReceipt(existing.receipt);
   }
-  await assertActive(actor);
+  await store.assertActive(actor);
   const sessionId = id();
-  return command(actor, "startChat", req, async (tx, now) => {
-    const options = await candidates(actor, req.wordSetId, tx);
+  return store.startCommand(actor, req, async (tx) => {
+    const options = await candidates(tx, req.wordSetId);
     if (options.needsSupplement && !req.allowSupplement)
       fail("SUPPLEMENT_CONFIRMATION_REQUIRED");
-    const refs: ReferenceWord[] = options.needsSupplement
+    const refs = options.needsSupplement
       ? options.refs.slice(0, Math.max(5, options.rememberedCount))
       : options.refs.slice(0, options.rememberedCount);
     if (!refs.length) fail("INSUFFICIENT_CHAT_SOURCE");
-    const usageRef = db.doc(
-      `users/${actor.uid}/aiDailyUsage/${dayKey(now.toDate())}`,
-    );
-    const [usageDoc, limitDoc, topicDoc, deckDoc] = await tx.getAll(
-      usageRef,
-      db.doc("config/ai"),
-      db.doc(`aiScenarios/${req.scenarioId}`),
-      db.doc(`systemDecks/${req.wordSetId}`),
-    );
-    const topic = requireDoc(topicDoc, "TOPIC_NOT_FOUND"),
-      deck = requireDoc(deckDoc, "DECK_NOT_FOUND"),
-      limit = requireDoc(limitDoc, "AI_NOT_CONFIGURED");
+    const day = dayKey(tx.now);
+    const [usage, limit, topic, deck] = await Promise.all([
+      tx.usage(day),
+      tx.limit(),
+      tx.topic(req.scenarioId),
+      tx.deck(req.wordSetId),
+    ]);
     if (!topic.active || !deck.active) fail("DECK_UNAVAILABLE");
     if (deck.publishedRevisionId !== options.revisionId) fail("CONFLICT");
-    const memories = await tx.getAll(
-      ...refs.map((word) =>
-        db.doc(`users/${actor.uid}/wordProgress/${word.wordId}`),
-      ),
+    const memories = await Promise.all(
+      refs.map((word) => tx.memory(word.wordId)),
     );
     if (
       !req.allowSupplement &&
-      memories.filter((memory) => memory.data()?.lastChoice === "REMEMBERED")
-        .length < 5
+      memories.filter((memory) => memory?.lastChoice === "REMEMBERED").length <
+        5
     )
       fail("SUPPLEMENT_CONFIRMATION_REQUIRED");
-    const used = usageDoc.data()?.successfulSessionCount ?? 0;
+    const used = usage?.successfulSessionCount ?? 0;
     if (used >= limit.maxSessionsPerDay) fail("AI_DAILY_LIMIT");
-    const chat = {
+    const chat: ChatSession = {
       id: sessionId,
       wordSetId: req.wordSetId,
       wordSetRevisionId: options.revisionId,
@@ -94,13 +70,10 @@ export async function startChat(actor: Actor, raw: unknown): Promise<Data> {
       status: "ACTIVE",
       completedTurns: 0,
       version: 1,
-      createdAt: now,
+      createdAt: tx.now,
     };
-    tx.create(db.doc(chatPath(actor, sessionId)), chat);
-    tx.set(usageRef, {
-      dayKey: dayKey(now.toDate()),
-      successfulSessionCount: used + 1,
-    });
+    tx.createChat(chat);
+    tx.saveUsage(day, used + 1);
     return chat;
   });
 }

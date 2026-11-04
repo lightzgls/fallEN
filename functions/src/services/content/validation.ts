@@ -1,52 +1,32 @@
-import { z } from "zod";
-import { entrySchema, metadataSchema } from "../../domain/content.js";
-import { db, fail, requireDoc, type Data } from "../../shared/core.js";
-import { readWordVersion } from "../dictionary.js";
-
-export function checkEncodedSize(value: unknown, maxBytes: number) {
-  if (Buffer.byteLength(JSON.stringify(value), "utf8") > maxBytes)
-    fail(
-      "PAYLOAD_LIMIT",
-      "Split this content into a smaller import or draft update",
-    );
-}
-
-export function assertDraft(revision: Data) {
-  if (revision.state !== "DRAFT")
-    fail("CONFLICT", "This revision is locked or already published");
-}
-
-export async function validateAsset(
-  assetId: string,
-  tx?: FirebaseFirestore.Transaction,
-) {
-  const ref = db.doc(`imageAssets/${assetId}`);
-  const asset = requireDoc(
-    await (tx ? tx.get(ref) : ref.get()),
-    "ASSET_NOT_FOUND",
-  );
-  if (asset.state !== "VALIDATED" || asset.kind !== "IMAGE")
-    fail("VALIDATION_FAILED", "Image is not validated");
+import type { MaterialReader } from "../../contracts/content/ports.js";
+import type { Metadata, SetWord } from "../../contracts/content/records.js";
+import type { Data } from "../../shared/types.js";
+import {
+  assertImageAsset,
+  validateEntryIdentity,
+} from "../../domain/content-rules.js";
+import { fail } from "../../shared/errors.js";
+import { required } from "./required.js";
+export async function validateAsset(reader: MaterialReader, assetId: string) {
+  const asset = required(await reader.asset(assetId), "ASSET_NOT_FOUND");
+  assertImageAsset(asset);
   return asset;
 }
-
 export async function validateEntries(
-  entries: z.infer<typeof entrySchema>[],
-  metadata: z.infer<typeof metadataSchema>,
-  tx?: FirebaseFirestore.Transaction,
+  reader: MaterialReader,
+  entries: SetWord[],
+  metadata: Metadata,
 ) {
-  if (
-    new Set(entries.map((e) => e.wordId)).size !== entries.length ||
-    new Set(entries.map((e) => e.position)).size !== entries.length
-  )
-    fail("VALIDATION_FAILED", "Word IDs and positions must be unique");
+  validateEntryIdentity(entries);
   if (metadata.coverImageAssetId)
-    await validateAsset(metadata.coverImageAssetId, tx);
+    await validateAsset(reader, metadata.coverImageAssetId);
   for (const entry of entries) {
-    const word = await readWordVersion(entry.wordId, entry.wordVersion, tx);
+    const word = await reader.wordVersion(entry.wordId, entry.wordVersion);
     if (
       entry.focusMeaningId &&
-      !word.meanings.some((m: Data) => m.id === entry.focusMeaningId)
+      !word.meanings.some(
+        (meaning: Data) => meaning.id === entry.focusMeaningId,
+      )
     )
       fail(
         "VALIDATION_FAILED",
@@ -61,6 +41,6 @@ export async function validateEntries(
         "VALIDATION_FAILED",
         "Select a focus meaning for this learning material",
       );
-    if (entry.imageAssetId) await validateAsset(entry.imageAssetId, tx);
+    if (entry.imageAssetId) await validateAsset(reader, entry.imageAssetId);
   }
 }

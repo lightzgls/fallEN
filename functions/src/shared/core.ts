@@ -9,9 +9,10 @@ export {
   version,
   empty,
   parse,
-  requireDoc,
   checkVersion,
 } from "./validation.js";
+export { requireDoc } from "../infrastructure/firebase/records.js";
 export { id, hash, serialize, cursorEncode, cursorDecode } from "./values.js";
-export { assertAdmin, assertActive } from "./access.js";
-export { command, getCommandStatus } from "./idempotency.js";
+export { assertAdmin } from "../domain/account.js";
+export { assertActive } from "../infrastructure/firebase/access.js";
+export { command } from "../infrastructure/firebase/commands.js";

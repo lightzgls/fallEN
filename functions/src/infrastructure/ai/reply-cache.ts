@@ -1,4 +1,5 @@
-import { type Actor } from "../../shared/core.js";
+import type { Actor } from "../../contracts/callable.js";
+import type { ReplyMemory } from "../../contracts/chat/store.js";
 
 export const replyCache = new Map<
   string,
@@ -30,3 +31,17 @@ export function rememberReply(
     expiresAt: Date.now() + 10 * 60_000,
   });
 }
+
+export const replyMemory: ReplyMemory = {
+  prune: pruneCache,
+  read: (actor, sessionId, turnId) =>
+    replyCache.get(cacheKey(actor, sessionId, turnId))?.reply,
+  remember: rememberReply,
+  remove(actor, sessionId, turnId) {
+    replyCache.delete(cacheKey(actor, sessionId, turnId));
+  },
+  clearSession(actor, sessionId) {
+    for (const key of replyCache.keys())
+      if (key.startsWith(`${actor.uid}/${sessionId}/`)) replyCache.delete(key);
+  },
+};

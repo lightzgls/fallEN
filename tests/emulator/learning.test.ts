@@ -5,7 +5,7 @@ import {
   addDays,
   type Data,
 } from "../../functions/src/shared/core.js";
-import { learningHandlers } from "../../functions/src/services/learning.js";
+import { learningHandlers } from "../../functions/src/routes/learning.js";
 import {
   businessCode,
   learner,
@@ -17,7 +17,7 @@ import {
 } from "./fixtures.js";
 
 const call = async (
-  name: string,
+  name: keyof typeof learningHandlers,
   input: Data = {},
   actor = learner,
 ): Promise<Data> => (await learningHandlers[name](actor, input)) as Data;
@@ -46,14 +46,12 @@ describe("one personal vocabulary and SRS lifecycle", () => {
     });
     expect(duplicate.plan).toEqual(first.plan);
     expect(duplicate.savedWord.source).toBe("DICTIONARY");
-    await db
-      .doc(userPath("wordProgress/book"))
-      .set({
-        wordId: "book",
-        version: 3,
-        everRemembered: true,
-        lastChoice: "NOT_REMEMBERED",
-      });
+    await db.doc(userPath("wordProgress/book")).set({
+      wordId: "book",
+      version: 3,
+      everRemembered: true,
+      lastChoice: "NOT_REMEMBERED",
+    });
     const removed = await call("removeWord", {
       wordId: "book",
       expectedMembershipVersion: 1,
@@ -159,15 +157,13 @@ describe("one personal vocabulary and SRS lifecycle", () => {
     await db
       .doc("dictionaryReleases/retained-release")
       .set({ state: "RETIRED" });
-    await db
-      .doc("dictionaryReleases/retained-release/entries/book")
-      .set({
-        wordId: "book",
-        wordVersion: 1,
-        active: true,
-        spelling: "book",
-        searchKey: "book",
-      });
+    await db.doc("dictionaryReleases/retained-release/entries/book").set({
+      wordId: "book",
+      wordVersion: 1,
+      active: true,
+      spelling: "book",
+      searchKey: "book",
+    });
     await db
       .doc("dictionaryReleases/test-release/entries/book")
       .update({ active: false });

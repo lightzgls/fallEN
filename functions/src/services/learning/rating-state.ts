@@ -1,86 +1,52 @@
-import { reviewDays, reviewLevel, sourceKey } from "../../domain/values.js";
-import { readActivity } from "../../infrastructure/learning/activity.js";
-import { userRef } from "../../infrastructure/learning/refs.js";
+import type { RatingContext } from "../../contracts/learning/store.js";
+import type { RatingInput } from "../../contracts/learning/inputs.js";
+import type { Memory, Place } from "../../contracts/learning/records.js";
 import {
-  addDays,
-  checkVersion,
-  dayKey,
-  db,
-  fail,
-  requireDoc,
-  type Actor,
-  type Data,
-} from "../../shared/core.js";
-import { resolveRelease } from "../dictionary.js";
-import { type RatingCommand } from "./rating-input.js";
-
-/** All reads and version/eligibility checks complete before any result is staged. */
+  requireRecord,
+  requireVersion,
+} from "../../domain/study-consistency.js";
+import { reviewDays, reviewLevel } from "../../domain/learning-rules.js";
+import { dayKey, addDays } from "../../shared/clock.js";
+import { fail } from "../../shared/errors.js";
 export async function readRatingState(
-  actor: Actor,
-  req: RatingCommand,
-  tx: FirebaseFirestore.Transaction,
-  now: FirebaseFirestore.Timestamp,
+  ctx: RatingContext,
+  req: RatingInput,
+  now: Date,
 ) {
-  const studyRef = userRef(actor, "studySessions", req.sessionId);
-  const itemRef = db.doc(
-    `users/${actor.uid}/studySessions/${req.sessionId}/items/${req.wordId}`,
-  );
-  const memoryRef = userRef(actor, "wordProgress", req.wordId);
-  const membershipRef = userRef(actor, "personalWords", req.wordId);
-  const planRef = userRef(actor, "srsSchedules", req.wordId);
-  const eventRef = userRef(actor, "assessmentEvents", req.eventId);
-  const [
-    studySnapshot,
-    itemSnapshot,
-    memorySnapshot,
-    membershipSnapshot,
-    planSnapshot,
-    eventSnapshot,
-  ] = await tx.getAll(
-    studyRef,
-    itemRef,
-    memoryRef,
-    membershipRef,
-    planRef,
-    eventRef,
-  );
-  const study = requireDoc(studySnapshot);
-  const item = requireDoc(itemSnapshot);
+  const study = requireRecord(await ctx.study(req.sessionId)),
+    item = requireRecord(await ctx.item(req.sessionId, req.wordId)),
+    memory = await ctx.memory(req.wordId),
+    membership = await ctx.membership(req.wordId),
+    previousPlan = await ctx.plan(req.wordId),
+    event = await ctx.rating(req.eventId);
   if (study.status !== "ACTIVE")
     fail("CONFLICT", "Study session is not active");
-  if (eventSnapshot.exists || item.ratedEventId)
+  if (event || item.ratedEventId)
     fail("CONFLICT", "This card has already been rated");
-  const currentMemory = memorySnapshot.data() ?? {
+  const currentMemory: Memory = memory ?? {
     wordId: req.wordId,
     version: 0,
     everRemembered: false,
   };
-  checkVersion(currentMemory.version, req.expectedMemoryVersion);
-  const membership = membershipSnapshot.data();
-  let plan = planSnapshot.data();
-  let place: Data | undefined;
-  let placeRef: FirebaseFirestore.DocumentReference | undefined;
-  let nextWordId: string | undefined;
-  const allItems = await tx.get(
-    studyRef.collection("items").orderBy("position"),
-  );
+  requireVersion(currentMemory.version, req.expectedMemoryVersion);
+  let plan = previousPlan,
+    place: Place | undefined,
+    nextWordId: string | undefined;
+  const allItems = await ctx.items(req.sessionId);
   if (study.mode === "FLASHCARD") {
-    placeRef = userRef(actor, "flashcardPositions", sourceKey(study.source));
-    place = requireDoc(await tx.get(placeRef));
+    const currentPlace = requireRecord(await ctx.place(study.source));
     if (req.expectedPlaceVersion === undefined)
       fail("VALIDATION_FAILED", "Flashcard rating needs place version");
-    checkVersion(place.version, req.expectedPlaceVersion!);
-    if (place.nextWordId !== req.wordId)
+    requireVersion(currentPlace.version, req.expectedPlaceVersion);
+    if (currentPlace.nextWordId !== req.wordId)
       fail("CONFLICT", "This card is not the current study position");
-    nextWordId = allItems.docs.find(
-      (s) => s.data().position > item.position,
-    )?.id;
+    nextWordId = allItems.find((i) => i.position > item.position)?.wordId;
     place = {
-      ...place,
-      ...(nextWordId ? { nextWordId } : { nextWordId: null }),
+      ...currentPlace,
+      nextWordId: nextWordId ?? null,
       completed: !nextWordId,
       updatedAt: now,
-      version: place.version + 1,
+      version: currentPlace.version + 1,
     };
   } else if (study.mode === "SRS") {
     if (!membership?.active || !plan)
@@ -94,27 +60,22 @@ export async function readRatingState(
         "VALIDATION_FAILED",
         "SRS rating needs schedule, cycle and membership versions",
       );
-    checkVersion(plan.version, req.expectedPlanVersion!);
-    checkVersion(membership.membershipVersion, req.membershipVersion!);
+    requireVersion(plan.version, req.expectedPlanVersion);
+    requireVersion(membership.membershipVersion, req.membershipVersion);
     if (
       plan.cycleId !== req.cycleId ||
       plan.cycleId !== item.cycleId ||
-      plan.dueDate > dayKey(now.toDate())
+      plan.dueDate > dayKey(now)
     )
       fail("CONFLICT", "Review schedule has changed or is not due");
-    const release = await resolveRelease(undefined, tx);
-    const activeEntry = (
-      await tx.get(
-        db.doc(`dictionaryReleases/${release.id}/entries/${req.wordId}`),
-      )
-    ).data();
-    if (!activeEntry?.active)
+    const entry = await ctx.entry(req.wordId, await ctx.releaseId());
+    if (!entry?.active)
       fail("WORD_UNAVAILABLE", "This word is no longer available");
     const level = reviewLevel(plan.level, req.choice === "REMEMBERED");
     plan = {
       ...plan,
       level,
-      dueDate: addDays(dayKey(now.toDate()), reviewDays[level - 1]),
+      dueDate: addDays(dayKey(now), reviewDays[level - 1]),
       version: plan.version + 1,
     };
   } else fail("VALIDATION_FAILED", "Unknown study mode");
@@ -123,33 +84,21 @@ export async function readRatingState(
     req.choice === "NOT_REMEMBERED" &&
     !membership?.active
   ) {
-    const release = await resolveRelease(undefined, tx);
-    const activeEntry = (
-      await tx.get(
-        db.doc(`dictionaryReleases/${release.id}/entries/${req.wordId}`),
-      )
-    ).data();
-    if (!activeEntry?.active) fail("WORD_UNAVAILABLE");
+    const entry = await ctx.entry(req.wordId, await ctx.releaseId());
+    if (!entry?.active) fail("WORD_UNAVAILABLE");
   }
-  const activity = await readActivity(tx, actor.uid, now);
-
+  const today = await ctx.day(dayKey(now)),
+    summary = await ctx.summary();
   return {
-    studyRef,
-    itemRef,
-    memoryRef,
-    membershipRef,
-    planRef,
-    eventRef,
     study,
-    item,
     currentMemory,
     membership,
     plan,
-    planSnapshot,
+    previousPlan,
     place,
-    placeRef,
     nextWordId,
     allItems,
-    activity,
+    today,
+    summary,
   };
 }

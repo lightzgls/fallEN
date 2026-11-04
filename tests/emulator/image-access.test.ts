@@ -6,7 +6,7 @@ import {
   hash,
   type Data,
 } from "../../functions/src/shared/core.js";
-import { contentHandlers } from "../../functions/src/services/content.js";
+import { contentHandlers } from "../../functions/src/routes/content.js";
 import {
   admin,
   learner,
@@ -27,33 +27,29 @@ async function imageAsset(assetId: string): Promise<void> {
     .png()
     .toBuffer();
   const storagePath = `content/${admin.uid}/${assetId}`;
-  await bucket
-    .file(storagePath)
-    .save(bytes, {
-      contentType: "image/png",
-      resumable: false,
+  await bucket.file(storagePath).save(bytes, {
+    contentType: "image/png",
+    resumable: false,
+    metadata: {
       metadata: {
-        metadata: {
-          firebaseStorageDownloadTokens: `emulator-${assetId}-token`,
-        },
+        firebaseStorageDownloadTokens: `emulator-${assetId}-token`,
       },
-    });
-  await db
-    .doc(`imageAssets/${assetId}`)
-    .set({
-      id: assetId,
-      assetId,
-      storagePath,
-      createdBy: admin.uid,
-      originalFileName: "private-admin-file.png",
-      state: "VALIDATED",
-      kind: "IMAGE",
-      contentType: "image/png",
-      byteSize: bytes.length,
-      width: 8,
-      height: 8,
-      checksum: hash(bytes.toString("base64")),
-    });
+    },
+  });
+  await db.doc(`imageAssets/${assetId}`).set({
+    id: assetId,
+    assetId,
+    storagePath,
+    createdBy: admin.uid,
+    originalFileName: "private-admin-file.png",
+    state: "VALIDATED",
+    kind: "IMAGE",
+    contentType: "image/png",
+    byteSize: bytes.length,
+    width: 8,
+    height: 8,
+    checksum: hash(bytes.toString("base64")),
+  });
 }
 
 beforeEach(async () => {
@@ -135,19 +131,17 @@ describe("published image resolution for Android learners", () => {
 
   it("requires the exact public release and WordVersion when resolving dictionary meaning images", async () => {
     await imageAsset("dictionary-image");
-    await db
-      .doc("words/book/versions/1")
-      .update({
-        meanings: [
-          {
-            id: "meaning-book",
-            partOfSpeech: "noun",
-            text: "Sách",
-            imageAssetId: "dictionary-image",
-            imageAlt: "Một cuốn sách",
-          },
-        ],
-      });
+    await db.doc("words/book/versions/1").update({
+      meanings: [
+        {
+          id: "meaning-book",
+          partOfSpeech: "noun",
+          text: "Sách",
+          imageAssetId: "dictionary-image",
+          imageAlt: "Một cuốn sách",
+        },
+      ],
+    });
     expect(
       (
         await resolve({
@@ -186,31 +180,27 @@ describe("published image resolution for Android learners", () => {
 
   it("resolves a retained deck default image from its pinned WordVersion after the current dictionary advances", async () => {
     await imageAsset("retained-default-image");
-    await db
-      .doc("words/book/versions/1")
-      .update({
-        meanings: [
-          {
-            id: "meaning-book",
-            partOfSpeech: "noun",
-            text: "Sách",
-            imageAssetId: "retained-default-image",
-            imageAlt: "Một cuốn sách",
-          },
-        ],
-      });
-    await db
-      .doc("words/book/versions/2")
-      .set({
-        wordId: "book",
-        version: 2,
-        spelling: "book",
-        otherSpellings: [],
-        meanings: [
-          { id: "meaning-book", partOfSpeech: "noun", text: "Sách bản mới" },
-        ],
-        dictionaryRefs: [],
-      });
+    await db.doc("words/book/versions/1").update({
+      meanings: [
+        {
+          id: "meaning-book",
+          partOfSpeech: "noun",
+          text: "Sách",
+          imageAssetId: "retained-default-image",
+          imageAlt: "Một cuốn sách",
+        },
+      ],
+    });
+    await db.doc("words/book/versions/2").set({
+      wordId: "book",
+      version: 2,
+      spelling: "book",
+      otherSpellings: [],
+      meanings: [
+        { id: "meaning-book", partOfSpeech: "noun", text: "Sách bản mới" },
+      ],
+      dictionaryRefs: [],
+    });
     await db
       .doc("dictionaryReleases/new-image-release")
       .set({ state: "PUBLISHED" });

@@ -1,7 +1,5 @@
-import { type DocumentSnapshot } from "firebase-admin/firestore";
 import { z } from "zod";
 import { ApplicationError, fail } from "./errors.js";
-import { type Data } from "./types.js";
 
 export const identifier = z
   .string()
@@ -32,14 +30,6 @@ export function parse<S extends z.ZodType>(
     );
   }
   return result.data;
-}
-
-export function requireDoc(
-  snapshot: DocumentSnapshot,
-  code = "NOT_FOUND",
-): Data {
-  if (!snapshot.exists) fail(code);
-  return snapshot.data()!;
 }
 
 export function checkVersion(actual: unknown, expected: number): void {

@@ -1,45 +1,34 @@
 import { timingSafeEqual } from "node:crypto";
-import { getAuth } from "firebase-admin/auth";
-import { Timestamp } from "firebase-admin/firestore";
-import { z } from "zod";
-import {
-  db,
-  bucket,
-  type Actor,
-  type Data,
-  hash,
-  parse,
-  identifier,
-  commandId,
-  fail,
-  assertActive,
-  requireDoc,
-  id,
-} from "../shared/core.js";
+import type { Actor } from "../contracts/callable.js";
+import type {
+  RequestDeletionInput,
+  DeletionStatusInput,
+} from "../contracts/deletion/requests.js";
+import type { DeletionStore } from "../contracts/deletion/store.js";
+import { fail } from "../shared/errors.js";
+import { hash } from "../shared/values.js";
+import { runDeletionJob } from "./deletion/worker.js";
 
-export async function requestDeletion(
+export function createDeletionService(store: DeletionStore) {
+  return {
+    requestDeletion: (actor: Actor, input: RequestDeletionInput) =>
+      requestDeletion(actor, input, store),
+    getDeletionStatus: (_actor: Actor, input: DeletionStatusInput) =>
+      getDeletionStatus(input, store),
+    runDeletionJob: (jobId: string) => runDeletionJob(jobId, store),
+  };
+}
+async function requestDeletion(
   actor: Actor,
-  raw: unknown,
-): Promise<Data> {
-  const input = parse(
-    z
-      .object({
-        commandId,
-        statusTokenHash: z.string().regex(/^[a-f0-9]{64}$/),
-      })
-      .strict(),
-    raw,
-  );
-  if (
-    Date.now() / 1000 - actor.authTime > 300 ||
-    actor.authTime > Date.now() / 1000 + 60
-  )
+  input: RequestDeletionInput,
+  store: DeletionStore,
+) {
+  const nowSeconds = store.now().getTime() / 1000;
+  if (nowSeconds - actor.authTime > 300 || actor.authTime > nowSeconds + 60)
     fail("REAUTH_REQUIRED");
   const requestHash = hash({ ownerUid: actor.uid, ...input });
-  return db.runTransaction(async (tx) => {
-    const jobRef = db.doc(`accountDeletionJobs/${input.commandId}`),
-      gateRef = db.doc(`accountStates/${actor.uid}`);
-    const previous = (await tx.get(jobRef)).data();
+  return store.transaction(input.commandId, async (tx) => {
+    const previous = await tx.readJob();
     if (previous) {
       if (previous.requestHash !== requestHash) fail("COMMAND_REUSED");
       return {
@@ -48,60 +37,45 @@ export async function requestDeletion(
         acceptedAt: previous.createdAt,
       };
     }
-    await assertActive(actor, tx);
-    const gate = requireDoc(await tx.get(gateRef));
-    const now = Timestamp.now();
-    tx.update(gateRef, {
+    await tx.assertActive(actor);
+    const gate = await tx.readGate(actor.uid);
+    tx.updateGate(actor.uid, {
       status: "DELETING",
       deletionJobId: input.commandId,
       version: gate.version + 1,
-      updatedAt: now,
+      updatedAt: tx.now,
     });
-    tx.create(jobRef, {
+    tx.createJob({
       jobId: input.commandId,
       ownerUid: actor.uid,
       statusTokenHash: input.statusTokenHash,
       requestHash,
       state: "QUEUED",
       phase: "DISABLE_AUTH",
-      createdAt: now,
-      updatedAt: now,
+      createdAt: tx.now,
+      updatedAt: tx.now,
     });
-    return { jobId: input.commandId, state: "QUEUED", acceptedAt: now };
+    return { jobId: input.commandId, state: "QUEUED", acceptedAt: tx.now };
   });
 }
-export async function getDeletionStatus(
-  _actor: Actor,
-  raw: unknown,
-): Promise<Data> {
-  const input = parse(
-    z
-      .object({
-        jobId: identifier,
-        statusToken: z
-          .string()
-          .min(43)
-          .max(128)
-          .regex(/^[A-Za-z0-9_-]+$/),
-      })
-      .strict(),
-    raw,
-  );
+async function getDeletionStatus(
+  input: DeletionStatusInput,
+  store: DeletionStore,
+) {
   const provided = Buffer.from(hash(input.statusToken), "hex");
-  return db.runTransaction(async (tx) => {
-    const ref = db.doc(`accountDeletionJobs/${input.jobId}`),
-      job = (await tx.get(ref)).data();
+  return store.transaction(input.jobId, async (tx) => {
+    const job = await tx.readJob();
     const expected = Buffer.from(job?.statusTokenHash ?? "0".repeat(64), "hex");
     if (
       !timingSafeEqual(provided, expected) ||
       !job ||
-      job.expiresAt?.toMillis() < Date.now()
+      (job.expiresAt?.getTime() ?? Infinity) < store.now().getTime()
     )
       fail("PERMISSION_DENIED");
-    const window = Math.floor(Date.now() / 60_000),
+    const window = Math.floor(store.now().getTime() / 60_000),
       count = job.statusWindow === window ? (job.statusReads ?? 0) : 0;
     if (count >= 30) fail("RATE_LIMITED");
-    tx.update(ref, { statusWindow: window, statusReads: count + 1 });
+    tx.updateJob({ statusWindow: window, statusReads: count + 1 });
     return {
       jobId: input.jobId,
       state: job.state,
@@ -112,121 +86,3 @@ export async function getDeletionStatus(
     };
   });
 }
-const missingAuth = (error: unknown): boolean =>
-  (error as { code?: string }).code === "auth/user-not-found";
-export async function runDeletionJob(jobId: string): Promise<void> {
-  parse(identifier, jobId);
-  const ref = db.doc(`accountDeletionJobs/${jobId}`);
-  const leaseOwner = id();
-  const job = await db.runTransaction(async (tx) => {
-    const current = (await tx.get(ref)).data();
-    if (!current || current.state === "COMPLETE") return null;
-    if (current.leaseUntil?.toMillis() > Date.now()) fail("JOB_IN_PROGRESS");
-    tx.update(ref, {
-      state: "RUNNING",
-      leaseOwner,
-      leaseUntil: Timestamp.fromMillis(Date.now() + 10 * 60_000),
-      updatedAt: Timestamp.now(),
-    });
-    return current;
-  });
-  if (!job) return;
-  const uid = parse(identifier, job.ownerUid);
-  const checkpoint = async (phase: string) =>
-    db.runTransaction(async (tx) => {
-      const latest = requireDoc(await tx.get(ref));
-      if (latest.leaseOwner !== leaseOwner || latest.state === "COMPLETE")
-        fail("LEASE_LOST");
-      tx.update(ref, {
-        phase,
-        leaseUntil: Timestamp.fromMillis(Date.now() + 10 * 60_000),
-        updatedAt: Timestamp.now(),
-      });
-    });
-  try {
-    const phases = [
-      "DISABLE_AUTH",
-      "PURGE_REPORTS",
-      "PURGE_AVATARS",
-      "PURGE_USER",
-      "DELETE_AUTH",
-      "COMPLETE",
-    ];
-    let phase = phases.indexOf(job.phase);
-    if (phase < 0) fail("JOB_INVALID");
-    if (phase <= 0) {
-      await getAuth()
-        .updateUser(uid, { disabled: true })
-        .catch((error) => {
-          if (!missingAuth(error)) throw error;
-        });
-      await getAuth()
-        .revokeRefreshTokens(uid)
-        .catch((error) => {
-          if (!missingAuth(error)) throw error;
-        });
-      await checkpoint("PURGE_REPORTS");
-      phase = 1;
-    }
-    if (phase <= 1) {
-      while (true) {
-        const reports = await db
-          .collection("contentReports")
-          .where("ownerUid", "==", uid)
-          .limit(100)
-          .get();
-        if (reports.empty) break;
-        for (const report of reports.docs) await db.recursiveDelete(report.ref);
-        await checkpoint("PURGE_REPORTS");
-      }
-      await checkpoint("PURGE_AVATARS");
-      phase = 2;
-    }
-    if (phase <= 2) {
-      await bucket.deleteFiles({ prefix: `avatars/${uid}/`, force: true });
-      await checkpoint("PURGE_USER");
-      phase = 3;
-    }
-    if (phase <= 3) {
-      await db.recursiveDelete(db.doc(`users/${uid}`));
-      await checkpoint("DELETE_AUTH");
-      phase = 4;
-    }
-    if (phase <= 4) {
-      await getAuth()
-        .deleteUser(uid)
-        .catch((error) => {
-          if (!missingAuth(error)) throw error;
-        });
-    }
-    await db.runTransaction(async (tx) => {
-      const latest = requireDoc(await tx.get(ref));
-      const now = Timestamp.now();
-      if (latest.leaseOwner !== leaseOwner || latest.state === "COMPLETE")
-        fail("LEASE_LOST");
-      tx.delete(db.doc(`accountStates/${uid}`));
-      tx.set(ref, {
-        jobId,
-        statusTokenHash: latest.statusTokenHash,
-        state: "COMPLETE",
-        phase: "COMPLETE",
-        createdAt: latest.createdAt,
-        completedAt: now,
-        expiresAt: Timestamp.fromMillis(now.toMillis() + 7 * 24 * 3600_000),
-      });
-    });
-  } catch {
-    await db.runTransaction(async (tx) => {
-      const latest = (await tx.get(ref)).data();
-      if (latest?.leaseOwner === leaseOwner && latest.state !== "COMPLETE")
-        tx.update(ref, {
-          state: "FAILED_RETRYABLE",
-          lastErrorCode: "DELETION_RETRY_REQUIRED",
-          leaseUntil: Timestamp.fromMillis(0),
-          updatedAt: Timestamp.now(),
-        });
-    });
-    throw new Error("DELETION_RETRY_REQUIRED");
-  }
-}
-export const deletionHandlers = { requestDeletion, getDeletionStatus };

@@ -1,4 +1,4 @@
-import { type Data } from "../../shared/core.js";
+import { type Data } from "../../shared/types.js";
 
 export function publicReport(report: Data): Data {
   return {

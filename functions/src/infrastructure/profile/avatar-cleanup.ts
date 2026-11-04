@@ -1,32 +1,54 @@
 import { Timestamp } from "firebase-admin/firestore";
-import { bucket, db } from "../../shared/core.js";
-
-export async function cleanupAvatars(): Promise<void> {
-  const expired = await db
-    .collectionGroup("profileAssets")
-    .where("state", "in", ["STAGING", "RETIRING"])
-    .where("expiresAt", "<=", Timestamp.now())
-    .limit(100)
-    .get();
-  for (const candidate of expired.docs) {
-    const asset = await db.runTransaction(async (tx) => {
-      const latest = (await tx.get(candidate.ref)).data();
-      if (
-        !latest ||
-        !["STAGING", "RETIRING"].includes(latest.state) ||
-        latest.expiresAt?.toMillis() > Date.now()
-      )
-        return null;
-      const user = (await tx.get(db.doc(`users/${latest.ownerUid}`))).data();
-      if (user?.avatarAssetId === candidate.id) return null;
-      tx.update(candidate.ref, {
-        cleanupLeaseUntil: Timestamp.fromMillis(Date.now() + 5 * 60_000),
-      });
-      return latest;
-    });
-    if (!asset) continue;
-    for (const path of [asset.stagingPath, asset.storagePath].filter(Boolean))
-      await bucket.file(path).delete({ ignoreNotFound: true });
-    await candidate.ref.delete();
-  }
-}
+import { z } from "zod";
+import type { AvatarCleanupStore } from "../../contracts/profile/cleanup.js";
+import { db, bucket } from "../firebase/runtime.js";
+import { plainValue } from "../firebase/records.js";
+import { parse } from "../../shared/validation.js";
+const cleanupAsset = z.object({
+  ownerUid: z.string(),
+  state: z.string(),
+  expiresAt: z.date().nullable().optional(),
+  stagingPath: z.string().optional(),
+  storagePath: z.string().optional(),
+});
+export const avatarCleanupStore: AvatarCleanupStore = {
+  now: () => new Date(),
+  async candidates(before) {
+    const page = await db
+      .collectionGroup("profileAssets")
+      .where("state", "in", ["STAGING", "RETIRING"])
+      .where("expiresAt", "<=", Timestamp.fromDate(before))
+      .limit(100)
+      .get();
+    return page.docs.map((doc) => ({ key: doc.ref.path, assetId: doc.id }));
+  },
+  transaction(candidate, work) {
+    const ref = db.doc(candidate.key);
+    return db.runTransaction((tx) =>
+      work({
+        async readAsset() {
+          const doc = await tx.get(ref);
+          return doc.exists
+            ? parse(cleanupAsset, plainValue(doc.data()))
+            : undefined;
+        },
+        async currentAvatar(uid) {
+          const doc = await tx.get(db.doc(`users/${uid}`));
+          return parse(
+            z.object({ avatarAssetId: z.string().optional() }),
+            doc.data() ?? {},
+          ).avatarAssetId;
+        },
+        lease(until) {
+          tx.update(ref, { cleanupLeaseUntil: until });
+        },
+      }),
+    );
+  },
+  async deleteFile(path) {
+    await bucket.file(path).delete({ ignoreNotFound: true });
+  },
+  async deleteAsset(candidate) {
+    await db.doc(candidate.key).delete();
+  },
+};

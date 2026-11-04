@@ -1,51 +1,51 @@
-import { type Transaction } from "firebase-admin/firestore";
-import { db, hash, requireDoc, type Data } from "../../shared/core.js";
-import { normalizeKey, readWordVersion } from "../dictionary.js";
-
+import type { ImportMatchingReader } from "../../contracts/content/ports.js";
+import type {
+  ImportInputRow,
+  ImportRowRecord,
+} from "../../contracts/content/records.js";
+import type { Data } from "../../shared/types.js";
+import { normalizeKey } from "../../domain/dictionary/search-key.js";
+import { required } from "./required.js";
 export async function resolveImportRows(
-  inputRows: Data[],
+  reader: ImportMatchingReader,
+  inputRows: ImportInputRow[],
   existing: Set<string>,
   declaredAssets: Set<string>,
   releaseId: string,
-  tx: Transaction,
 ) {
-  const seen = new Set<string>();
-  const rows: Data[] = [];
-  for (let i = 0; i < inputRows.length; i++) {
-    const rawRow = inputRows[i];
-    const normalizedKey = normalizeKey(rawRow.word);
-    const row: Data = {
-      id: `row_${i + 1}`,
-      rowNumber: i + 1,
-      rawWord: rawRow.word,
+  const seen = new Set<string>(),
+    rows: ImportRowRecord[] = [];
+  for (let index = 0; index < inputRows.length; index++) {
+    const input = inputRows[index],
+      normalizedKey = normalizeKey(input.word);
+    const row: ImportRowRecord = {
+      id: `row_${index + 1}`,
+      rowNumber: index + 1,
+      rawWord: input.word,
       normalizedKey,
-      input: rawRow,
+      input,
       status: "NOT_FOUND",
       errors: [],
       operation: "ADD",
     };
-    const key = (
-      await tx.get(
-        db.doc(`dictionaryReleases/${releaseId}/keys/${hash(normalizedKey)}`),
-      )
-    ).data();
+    const key = await reader.exactKey(releaseId, normalizedKey);
     if (key && key.normalizedKey === normalizedKey) {
-      const releaseEntry = requireDoc(
-        await tx.get(
-          db.doc(`dictionaryReleases/${releaseId}/entries/${key.wordId}`),
-        ),
+      const releaseEntry = required(
+        await reader.releaseEntry(releaseId, key.wordId),
       );
       if (releaseEntry.active) {
-        const word = await readWordVersion(key.wordId, key.wordVersion, tx);
-        const candidates = rawRow.partOfSpeech
+        const word = await reader.wordVersion(key.wordId, key.wordVersion);
+        const candidates = input.partOfSpeech
           ? word.meanings.filter(
-              (m: Data) =>
-                normalizeKey(m.partOfSpeech) ===
-                normalizeKey(rawRow.partOfSpeech),
+              (meaning: Data) =>
+                normalizeKey(meaning.partOfSpeech) ===
+                normalizeKey(input.partOfSpeech!),
             )
           : word.meanings;
-        const focus = rawRow.focusMeaningId
-          ? candidates.find((m: Data) => m.id === rawRow.focusMeaningId)
+        const focus = input.focusMeaningId
+          ? candidates.find(
+              (meaning: Data) => meaning.id === input.focusMeaningId,
+            )
           : candidates.length === 1
             ? candidates[0]
             : undefined;
@@ -61,16 +61,20 @@ export async function resolveImportRows(
         seen.add(key.wordId);
       }
     }
-    if (!!rawRow.example !== !!rawRow.exampleTranslation)
+    if (!!input.example !== !!input.exampleTranslation)
       row.errors.push("EXAMPLE_PAIR_REQUIRED");
     if (
-      rawRow.imageAssetId &&
-      (!declaredAssets.has(rawRow.imageAssetId) || !rawRow.imageAlt)
+      input.imageAssetId &&
+      (!declaredAssets.has(input.imageAssetId) || !input.imageAlt)
     )
       row.errors.push("IMAGE_ASSET_OR_ALT_REQUIRED");
     if (row.errors.length) row.status = "INVALID";
     rows.push(row);
   }
-
   return rows;
+}
+export function rowCounts(rows: ImportRowRecord[]) {
+  const counts: Record<string, number> = { total: rows.length };
+  for (const row of rows) counts[row.status] = (counts[row.status] ?? 0) + 1;
+  return counts;
 }

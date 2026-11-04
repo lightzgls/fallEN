@@ -1,7 +1,7 @@
 import { db } from "../../functions/src/infrastructure/firebase/runtime.js";
 import { fail } from "../../functions/src/shared/errors.js";
 import { hash } from "../../functions/src/shared/values.js";
-import { requireDoc } from "../../functions/src/shared/validation.js";
+import { requireDoc } from "../../functions/src/infrastructure/firebase/records.js";
 import { normalizeKey } from "../../functions/src/domain/dictionary/search-key.js";
 import { type DictionaryManifest } from "./manifest.js";
 export interface ValidatedManifest {

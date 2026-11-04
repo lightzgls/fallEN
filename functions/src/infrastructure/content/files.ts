@@ -3,7 +3,7 @@ import sharp from "sharp";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { bucket, fail, parse, type Data } from "../../shared/core.js";
-import { rowSchema } from "../../domain/content.js";
+import { rowSchema } from "../../contracts/content/values.js";
 
 /** Storage and untrusted file parsing stay outside retriable Firestore callbacks. */
 export async function inspectContentUpload(asset: Data): Promise<Data> {

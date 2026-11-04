@@ -1,74 +1,62 @@
-import { Timestamp } from "firebase-admin/firestore";
-import { z } from "zod";
-import { sessionSchema } from "../../domain/chat-commands.js";
-import {
-  type Actor,
-  assertActive,
-  cursorDecode,
-  cursorEncode,
-  db,
-  empty,
-  fail,
-  identifier,
-  parse,
-  requireDoc,
-} from "../../shared/core.js";
+import type { Actor } from "../../contracts/callable.js";
+import type { ChatStore } from "../../contracts/chat/store.js";
+import type {
+  ChatHistoryInput,
+  ChatWordsInput,
+} from "../../contracts/chat/requests.js";
+import { cursorDecode, cursorEncode } from "../../shared/values.js";
+import { fail } from "../../shared/errors.js";
 import { candidates } from "./context.js";
 
-export async function getChatWords(actor: Actor, raw: unknown) {
-  const input = parse(z.object({ wordSetId: identifier }).strict(), raw);
-  await assertActive(actor);
-  return candidates(actor, input.wordSetId);
+export async function getChatWords(
+  store: ChatStore,
+  actor: Actor,
+  input: ChatWordsInput,
+) {
+  await store.assertActive(actor);
+  return candidates(store.sourceReader(actor), input.wordSetId);
 }
-
-export async function getTopics(actor: Actor, raw: unknown) {
-  parse(empty, raw);
-  await assertActive(actor);
-  return {
-    items: (
-      await db.collection("aiScenarios").where("active", "==", true).get()
-    ).docs.map((doc) => ({ ...doc.data(), id: doc.id })),
-  };
+export async function getTopics(store: ChatStore, actor: Actor) {
+  await store.assertActive(actor);
+  return { items: await store.topics() };
 }
-
-export async function getChatHistory(actor: Actor, raw: unknown) {
-  const input = parse(
-    z.object({ cursor: z.string().max(4096).optional() }).strict(),
-    raw,
-  );
-  await assertActive(actor);
-  let query = db
-    .collection(`users/${actor.uid}/aiSummaries`)
-    .orderBy("endedAt", "desc")
-    .orderBy("__name__", "desc")
-    .limit(21);
-  if (input.cursor) {
-    const cursor = cursorDecode(input.cursor);
-    if (cursor.uid !== actor.uid) fail("VALIDATION_FAILED");
-    query = query.startAfter(Timestamp.fromMillis(cursor.time), cursor.id);
-  }
-  const docs = await query.get(),
-    items = docs.docs
-      .slice(0, 20)
-      .map((doc) => ({ ...doc.data(), id: doc.id })),
-    last = docs.docs[19];
+export async function getChatSummary(
+  store: ChatStore,
+  actor: Actor,
+  input: { sessionId: string },
+) {
+  await store.assertActive(actor);
+  return (await store.summary(actor, input.sessionId)) ?? fail("NOT_FOUND");
+}
+export async function getChatHistory(
+  store: ChatStore,
+  actor: Actor,
+  input: ChatHistoryInput,
+) {
+  await store.assertActive(actor);
+  const cursor = input.cursor ? cursorDecode(input.cursor) : undefined;
+  if (
+    cursor &&
+    (cursor.uid !== actor.uid ||
+      typeof cursor.time !== "number" ||
+      !Number.isFinite(cursor.time) ||
+      typeof cursor.id !== "string")
+  )
+    fail("VALIDATION_FAILED");
+  const page = await store.history(
+      actor,
+      cursor ? { time: new Date(cursor.time), id: cursor.id } : undefined,
+    ),
+    last = page.items[19];
   return {
-    items,
+    items: page.items,
     cursor:
-      docs.size > 20
+      page.hasMore && last
         ? cursorEncode({
             uid: actor.uid,
-            time: last.data().endedAt.toMillis(),
+            time: last.endedAt.getTime(),
             id: last.id,
           })
         : undefined,
   };
-}
-
-export async function getChatSummary(actor: Actor, raw: unknown) {
-  const input = parse(sessionSchema.strict(), raw);
-  await assertActive(actor);
-  return requireDoc(
-    await db.doc(`users/${actor.uid}/aiSummaries/${input.sessionId}`).get(),
-  );
 }

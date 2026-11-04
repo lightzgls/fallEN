@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db, type Data } from "../../functions/src/shared/core.js";
-import { dictionaryHandlers } from "../../functions/src/services/dictionary.js";
+import { dictionaryHandlers } from "../../functions/src/routes/dictionary.js";
 import { businessCode, publicActor, resetData, seedData } from "./fixtures.js";
 
 const search = async (input: Data): Promise<Data> =>

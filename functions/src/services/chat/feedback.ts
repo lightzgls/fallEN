@@ -3,13 +3,16 @@ import {
   type ChatContext,
   mentionedWords,
 } from "../../domain/chat.js";
-import { type Actor, type Data } from "../../shared/types.js";
+import type { Actor } from "../../contracts/callable.js";
+import type { ChatSession } from "../../contracts/chat/records.js";
+import type { ChatStore } from "../../contracts/chat/store.js";
 import { deliveredContext, promptFor } from "./context.js";
 import { type SummaryFeedback } from "../../domain/chat-summary.js";
 export async function collectSummaryFeedback(
+  store: ChatStore,
   actor: Actor,
   req: { sessionId: string; context?: ChatContext },
-  chat: Data,
+  chat: ChatSession,
   api: ChatApi,
 ): Promise<SummaryFeedback> {
   let strengths: string[] = [],
@@ -19,14 +22,14 @@ export async function collectSummaryFeedback(
   if (chat.completedTurns > 0) {
     feedbackStatus = "UNAVAILABLE";
     if (req.context) {
-      await deliveredContext(actor, req.sessionId, req.context);
+      await deliveredContext(store, actor, req.sessionId, req.context);
       mentionedWordIds = mentionedWords(
-        (await promptFor(chat, req.context)).words,
+        (await promptFor(store, chat, req.context)).words,
         req.context,
       );
       try {
         const feedback = await api.giveFeedback(
-          await promptFor(chat, req.context),
+          await promptFor(store, chat, req.context),
         );
         const originals = req.context.pairs.map((pair) =>
           pair.learner.toLocaleLowerCase("en"),

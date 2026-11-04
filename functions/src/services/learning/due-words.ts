@@ -1,59 +1,33 @@
-import {
-  FieldPath,
-  Timestamp,
-  type Transaction,
-} from "firebase-admin/firestore";
-import { empty } from "../../domain/values.js";
-import { userRef } from "../../infrastructure/learning/refs.js";
-import {
-  assertActive,
-  dayKey,
-  db,
-  parse,
-  type Actor,
-  type Data,
-} from "../../shared/core.js";
-import { readWord, resolveRelease } from "../dictionary.js";
-
-export async function dueWords(actor: Actor, tx?: Transaction) {
-  const release = await resolveRelease(undefined, tx);
-  const query = db
-    .collection(`users/${actor.uid}/srsSchedules`)
-    .where("dueDate", "<=", dayKey())
-    .orderBy("dueDate")
-    .orderBy(FieldPath.documentId());
-  const schedules = tx ? await tx.get(query) : await query.get();
-  const words: Data[] = [];
-  for (const snapshot of schedules.docs) {
-    const membershipRef = userRef(actor, "personalWords", snapshot.id);
-    const membership = tx
-      ? await tx.get(membershipRef)
-      : await membershipRef.get();
-    if (!membership.data()?.active) continue;
-    const entryRef = db.doc(
-      `dictionaryReleases/${release.id}/entries/${snapshot.id}`,
-    );
-    const entry = (await (tx ? tx.get(entryRef) : entryRef.get())).data();
+import type { Actor } from "../../contracts/callable.js";
+import type {
+  DueWordsReader,
+  DueWordsStore,
+} from "../../contracts/learning/store.js";
+import { dayKey } from "../../shared/clock.js";
+export async function dueWords(reader: DueWordsReader, today: string) {
+  const releaseId = await reader.releaseId(),
+    plans = await reader.duePlans(today);
+  const words = [];
+  for (const plan of plans) {
+    const membership = await reader.membership(plan.wordId);
+    if (!membership?.active) continue;
+    const entry = await reader.entry(plan.wordId, releaseId);
     if (!entry?.active) continue;
-    const word = await readWord(snapshot.id, release.id, tx);
+    const word = await reader.word(plan.wordId, releaseId);
     words.push({
-      wordId: snapshot.id,
+      wordId: plan.wordId,
       word,
-      plan: snapshot.data(),
-      membershipVersion: membership.data()!.membershipVersion,
+      plan,
+      membershipVersion: membership.membershipVersion,
     });
   }
   return words;
 }
-
-export async function getDueWords(actor: Actor, input: unknown) {
-  parse(empty, input);
-  await assertActive(actor);
-  const items = await dueWords(actor);
-  return {
-    items,
-    count: items.length,
-    asOfDay: dayKey(),
-    fetchedAt: Timestamp.now(),
-  };
+export function getDueWords(store: DueWordsStore, actor: Actor) {
+  return store.read(actor, async (reader) => {
+    const now = store.now(),
+      today = dayKey(now),
+      items = await dueWords(reader, today);
+    return { items, count: items.length, asOfDay: today, fetchedAt: now };
+  });
 }

@@ -3,7 +3,7 @@ import {
   publishDictionaryManifest,
   type DictionaryManifest,
 } from "../../tools/dictionary/publish.js";
-import { dictionaryHandlers } from "../../functions/src/services/dictionary.js";
+import { dictionaryHandlers } from "../../functions/src/routes/dictionary.js";
 import type { Data } from "../../functions/src/shared/core.js";
 import {
   businessCode,

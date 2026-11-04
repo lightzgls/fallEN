@@ -1,22 +1,7 @@
-import { type Actor } from "../shared/types.js";
-import { submitReport, updateReportStatus } from "./reports/commands.js";
-import {
-  getReportContext,
-  getMyReports,
-  getMyReport,
-  listReports,
-  getReport,
-} from "./reports/queries.js";
-export const reportHandlers: Record<
-  string,
-  (actor: Actor, input: unknown) => Promise<unknown>
-> = {
-  submitReport: submitReport,
-  updateReportStatus: updateReportStatus,
-  closeReport: updateReportStatus,
-  getReportContext: getReportContext,
-  getMyReports: getMyReports,
-  getMyReport: getMyReport,
-  listReports: listReports,
-  getReport: getReport,
-};
+import type { ReportStore } from "../contracts/reports/store.js";
+import { createReportCommands } from "./reports/commands.js";
+import { createReportQueries } from "./reports/queries.js";
+export function createReportService(store: ReportStore) {
+  return { ...createReportCommands(store), ...createReportQueries(store) };
+}
+export type ReportService = ReturnType<typeof createReportService>;

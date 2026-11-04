@@ -1,4 +1,11 @@
-import { type Actor } from "../shared/types.js";
+import type { Actor } from "../contracts/callable.js";
+import type {
+  BeginAvatarInput,
+  EnsureProfileInput,
+  FinalizeAvatarInput,
+  SaveProfileInput,
+} from "../contracts/profile/requests.js";
+import type { ProfileStore } from "../contracts/profile/store.js";
 import { ensureProfile, saveProfile } from "./profile/commands.js";
 import {
   getProfile,
@@ -7,18 +14,20 @@ import {
   getDeletionInfo,
 } from "./profile/queries.js";
 import { beginAvatarUpload, finalizeAvatar } from "./profile/avatar.js";
-export { ensureProfile } from "./profile/commands.js";
-export { cleanupAvatars } from "../infrastructure/profile/avatar-cleanup.js";
-export const profileHandlers: Record<
-  string,
-  (actor: Actor, input: unknown) => Promise<unknown>
-> = {
-  ensureProfile: ensureProfile,
-  getProfile: getProfile,
-  saveProfile: saveProfile,
-  beginAvatarUpload: beginAvatarUpload,
-  finalizeAvatar: finalizeAvatar,
-  getAccess: getAccess,
-  getAccountState: getAccountState,
-  getDeletionInfo: getDeletionInfo,
-};
+
+export function createProfileService(store: ProfileStore) {
+  return {
+    ensureProfile: (actor: Actor, input: EnsureProfileInput) =>
+      ensureProfile(actor, input, store),
+    saveProfile: (actor: Actor, input: SaveProfileInput) =>
+      saveProfile(actor, input, store),
+    beginAvatarUpload: (actor: Actor, input: BeginAvatarInput) =>
+      beginAvatarUpload(actor, input, store),
+    finalizeAvatar: (actor: Actor, input: FinalizeAvatarInput) =>
+      finalizeAvatar(actor, input, store),
+    getProfile: (actor: Actor) => getProfile(actor, store),
+    getAccess: (actor: Actor) => getAccess(actor, store),
+    getAccountState: (actor: Actor) => getAccountState(actor, store),
+    getDeletionInfo: (actor: Actor) => getDeletionInfo(actor, store),
+  };
+}

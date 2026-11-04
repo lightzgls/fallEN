@@ -1,42 +1,48 @@
-import { z } from "zod";
-import { empty, objectId } from "../../domain/values.js";
-import {
-  getDraftData,
-  publicItem,
-} from "../../infrastructure/content/decks.js";
-import { revisionRef } from "../../infrastructure/content/refs.js";
-import { db, parse, requireDoc, type Actor } from "../../shared/core.js";
-import { admin } from "./access.js";
-
-export async function listDecks(actor: Actor, raw: unknown) {
-  parse(empty, raw);
-  await admin(actor);
-  const decks = await db.collection("systemDecks").orderBy("__name__").get();
-  const items = await Promise.all(
-    decks.docs.map(async (document) => {
-      const deck = publicItem(document);
-      if (deck.draftRevisionId)
-        deck.draft = requireDoc(
-          await revisionRef(document.id, deck.draftRevisionId).get(),
-        );
-      const selectedRevisionId =
-        deck.publishedRevisionId ?? deck.draftRevisionId;
-      deck.wordCount = selectedRevisionId
-        ? (
-            await revisionRef(document.id, selectedRevisionId)
-              .collection("words")
-              .count()
-              .get()
-          ).data().count
-        : 0;
-      return deck;
-    }),
-  );
-  return { items };
-}
-
-export async function getDraft(actor: Actor, raw: unknown) {
-  const req = parse(z.object({ wordSetId: objectId }).strict(), raw);
-  await admin(actor);
-  return getDraftData(req.wordSetId);
+import type { Actor } from "../../contracts/callable.js";
+import type { DeckQueryStore } from "../../contracts/content/ports.js";
+import type {
+  GetDraftInput,
+  ListDecksInput,
+} from "../../contracts/content/drafts-inputs.js";
+import { fail } from "../../shared/errors.js";
+import { required } from "./required.js";
+export function createDeckQueries(store: DeckQueryStore) {
+  return {
+    listDecks: async (actor: Actor, _input: ListDecksInput) => {
+      await store.active(actor);
+      const items = await Promise.all(
+        (await store.decks()).map(async (deck) => {
+          const draft = deck.draftRevisionId
+            ? required(await store.revision(deck.id, deck.draftRevisionId))
+            : undefined;
+          const selected = deck.publishedRevisionId ?? deck.draftRevisionId;
+          return {
+            ...deck,
+            ...(draft ? { draft } : {}),
+            wordCount: selected
+              ? (await store.entries(deck.id, selected)).length
+              : 0,
+          };
+        }),
+      );
+      return { items };
+    },
+    getDraft: async (actor: Actor, req: GetDraftInput) => {
+      await store.active(actor);
+      const wordSet = required(
+        await store.deck(req.wordSetId),
+        "DECK_NOT_FOUND",
+      );
+      if (!wordSet.draftRevisionId) fail("DRAFT_NOT_FOUND");
+      const revision = required(
+        await store.revision(req.wordSetId, wordSet.draftRevisionId),
+        "DRAFT_NOT_FOUND",
+      );
+      return {
+        wordSet,
+        revision,
+        entries: await store.entries(req.wordSetId, wordSet.draftRevisionId),
+      };
+    },
+  };
 }

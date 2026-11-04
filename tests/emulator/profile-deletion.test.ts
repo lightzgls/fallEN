@@ -12,11 +12,11 @@ import {
 import {
   profileHandlers,
   cleanupAvatars,
-} from "../../functions/src/services/profile.js";
+} from "../../functions/src/routes/profile.js";
 import {
   deletionHandlers,
   runDeletionJob,
-} from "../../functions/src/services/deletion.js";
+} from "../../functions/src/routes/deletion.js";
 import {
   businessCode,
   learner,
@@ -28,7 +28,7 @@ import {
 } from "./fixtures.js";
 
 const profile = async (
-  name: string,
+  name: keyof typeof profileHandlers,
   input: Data,
   actor = learner,
 ): Promise<Data> => (await profileHandlers[name](actor, input)) as Data;
@@ -265,8 +265,8 @@ describe("account deletion gate, recursive purge and capability status", () => {
       statusToken: token,
     });
     expect(status.state).toBe("COMPLETE");
-    expect(status.ownerUid).toBeUndefined();
-    expect(status.statusTokenHash).toBeUndefined();
+    expect(status).not.toHaveProperty("ownerUid");
+    expect(status).not.toHaveProperty("statusTokenHash");
     expect(
       await businessCode(
         deletionHandlers.getDeletionStatus(publicActor, {

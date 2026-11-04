@@ -1,11 +1,10 @@
-import { z } from "zod";
 import { hash } from "../../shared/values.js";
 import { type Data } from "../../shared/types.js";
-import { categorySchema } from "./contracts.js";
+import type { Category } from "../../contracts/reports/values.js";
 
 export function learningContent(
   word: Data,
-  category: z.infer<typeof categorySchema>,
+  category: Category,
   override?: Data,
 ): Data {
   const meanings: Data[] = override?.focusMeaningId

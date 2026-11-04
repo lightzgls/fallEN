@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db, type Data } from "../../functions/src/shared/core.js";
-import { contentHandlers } from "../../functions/src/services/content.js";
-import { reportHandlers } from "../../functions/src/services/reports.js";
-import { dictionaryHandlers } from "../../functions/src/services/dictionary.js";
+import { contentHandlers } from "../../functions/src/routes/content.js";
+import { reportHandlers } from "../../functions/src/routes/reports.js";
+import { dictionaryHandlers } from "../../functions/src/routes/dictionary.js";
 import {
   admin,
   learner,
@@ -15,12 +15,12 @@ import {
 } from "./fixtures.js";
 
 const content = async (
-  name: string,
+  name: keyof typeof contentHandlers,
   input: Data,
   actor = admin,
 ): Promise<Data> => (await contentHandlers[name](actor, input)) as Data;
 const report = async (
-  name: string,
+  name: keyof typeof reportHandlers,
   input: Data,
   actor = learner,
 ): Promise<Data> => (await reportHandlers[name](actor, input)) as Data;
@@ -385,15 +385,13 @@ describe("report ownership, transitions, audit and published fixes", () => {
       "VALIDATION_FAILED",
     );
     const previous = await read("words/book/versions/1");
-    await db
-      .doc("words/book/versions/2")
-      .set({
-        ...previous,
-        version: 2,
-        meanings: [
-          { id: "meaning-book", partOfSpeech: "noun", text: "Nghĩa đã sửa" },
-        ],
-      });
+    await db.doc("words/book/versions/2").set({
+      ...previous,
+      version: 2,
+      meanings: [
+        { id: "meaning-book", partOfSpeech: "noun", text: "Nghĩa đã sửa" },
+      ],
+    });
     await db.doc("dictionaryReleases/fixed-release").set({ state: "READY" });
     await db
       .doc("dictionaryReleases/fixed-release/entries/book")
@@ -498,16 +496,14 @@ describe("report ownership, transitions, audit and published fixes", () => {
     const original = await read(
       "systemDecks/test-deck/revisions/revision-one/words/book",
     );
-    await db
-      .doc("systemDecks/test-deck/revisions/reordered-revision")
-      .set({
-        id: "reordered-revision",
-        wordSetId: "test-deck",
-        name: "Bộ kiểm thử",
-        topic: "Kiểm thử",
-        state: "PUBLISHED",
-        version: 1,
-      });
+    await db.doc("systemDecks/test-deck/revisions/reordered-revision").set({
+      id: "reordered-revision",
+      wordSetId: "test-deck",
+      name: "Bộ kiểm thử",
+      topic: "Kiểm thử",
+      state: "PUBLISHED",
+      version: 1,
+    });
     await db
       .doc("systemDecks/test-deck/revisions/reordered-revision/words/book")
       .set({ ...original, revisionId: "reordered-revision", position: 100 });

@@ -1,42 +1,36 @@
+import type { Actor } from "../../contracts/callable.js";
+import type { ChatStore, ReplyMemory } from "../../contracts/chat/store.js";
+import type { TurnCommand } from "../../domain/chat-commands.js";
+import type { ChatApi } from "../../domain/chat.js";
 import { ApplicationError } from "../../shared/errors.js";
-import { turnSchema } from "../../domain/chat-commands.js";
-import { type ChatApi } from "../../domain/chat.js";
-import { type Actor, type Data } from "../../shared/types.js";
-import { assertActive } from "../../shared/access.js";
-import { parse } from "../../shared/validation.js";
 import { id } from "../../shared/values.js";
-import {
-  pruneCache,
-  rememberReply,
-} from "../../infrastructure/ai/reply-cache.js";
-import {
-  hasProcessedTurn,
-  reserveTurn,
-  recordTurnFailure,
-  recordReadyReply,
-} from "../../infrastructure/chat/turn-store.js";
 import { deliveredContext, promptFor } from "./context.js";
+import { reserveTurn, recordTurnFailure, recordReadyReply } from "./turns.js";
+
 export async function sendMessage(
-  actor: Actor,
-  raw: unknown,
+  store: ChatStore,
+  memory: ReplyMemory,
   api: ChatApi,
-): Promise<Data> {
-  const req = parse(turnSchema, raw);
-  await assertActive(actor);
-  pruneCache();
-  if (!(await hasProcessedTurn(actor, req)))
-    await deliveredContext(actor, req.sessionId, req.context);
+  actor: Actor,
+  req: TurnCommand,
+) {
+  await store.assertActive(actor);
+  memory.prune();
+  if (!(await store.hasTurn(actor, req.sessionId, req.turnId)))
+    await deliveredContext(store, actor, req.sessionId, req.context);
   const leaseId = id(),
-    begun = await reserveTurn(actor, req, leaseId);
-  if (begun.cached) return begun.cached;
+    begun = await reserveTurn(store, memory, actor, req, leaseId);
+  if ("cached" in begun) return begun.cached;
   let reply: string;
   try {
-    await deliveredContext(actor, req.sessionId, req.context);
+    await deliveredContext(store, actor, req.sessionId, req.context);
     reply = (
-      await api.reply(await promptFor(begun.chat, req.context, req.message))
+      await api.reply(
+        await promptFor(store, begun.chat, req.context, req.message),
+      )
     ).reply;
   } catch (error) {
-    await recordTurnFailure(actor, req, leaseId);
+    await recordTurnFailure(store, actor, req, leaseId);
     if (error instanceof ApplicationError) throw error;
     return {
       turnId: req.turnId,
@@ -44,8 +38,8 @@ export async function sendMessage(
       status: "FAILED",
     };
   }
-  const receipt = await recordReadyReply(actor, req, leaseId, reply);
+  const receipt = await recordReadyReply(store, actor, req, leaseId, reply);
   if (receipt.status === "REPLY_READY")
-    rememberReply(actor, req.sessionId, req.turnId, reply);
+    memory.remember(actor, req.sessionId, req.turnId, reply);
   return receipt;
 }

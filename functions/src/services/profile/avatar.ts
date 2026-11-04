@@ -1,50 +1,32 @@
-import { prepareAvatarImage } from "../../infrastructure/profile/avatar-image.js";
-import { Timestamp } from "firebase-admin/firestore";
-import { z } from "zod";
-import {
-  assertActive,
-  command,
-  commandId,
-  db,
-  fail,
-  id,
-  identifier,
-  parse,
-  requireDoc,
-  type Actor,
-  type Data,
-} from "../../shared/core.js";
+import type { Actor } from "../../contracts/callable.js";
+import type {
+  BeginAvatarInput,
+  FinalizeAvatarInput,
+} from "../../contracts/profile/requests.js";
+import type {
+  AvatarAsset,
+  ProfileStore,
+} from "../../contracts/profile/store.js";
+import { fail } from "../../shared/errors.js";
+import { id } from "../../shared/values.js";
 
 export async function beginAvatarUpload(
   actor: Actor,
-  raw: unknown,
-): Promise<Data> {
-  const input = parse(
-    z
-      .object({
-        commandId,
-        mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
-        sizeBytes: z
-          .number()
-          .int()
-          .min(1)
-          .max(5 * 1024 * 1024),
-      })
-      .strict(),
-    raw,
-  );
+  input: BeginAvatarInput,
+  store: ProfileStore,
+) {
   const assetId = id();
-  return command(actor, "beginAvatarUpload", input, async (tx, now) => {
+  return store.command(actor, "beginAvatarUpload", input, async (tx) => {
     const stagingPath = `avatars/${actor.uid}/staging/${assetId}`;
-    tx.create(db.doc(`users/${actor.uid}/profileAssets/${assetId}`), {
+    tx.createAsset({
       assetId,
       ownerUid: actor.uid,
       stagingPath,
       mimeType: input.mimeType,
       sizeBytes: input.sizeBytes,
       state: "STAGING",
-      createdAt: now,
-      expiresAt: Timestamp.fromMillis(now.toMillis() + 24 * 3600_000),
+      createdAt: tx.now,
+      expiresAt: new Date(tx.now.getTime() + 24 * 3600_000),
     });
     return {
       assetId,
@@ -55,35 +37,33 @@ export async function beginAvatarUpload(
     };
   });
 }
-
 export async function finalizeAvatar(
   actor: Actor,
-  raw: unknown,
-): Promise<Data> {
-  const input = parse(z.object({ assetId: identifier }).strict(), raw);
-  await assertActive(actor);
-  const ref = db.doc(`users/${actor.uid}/profileAssets/${input.assetId}`),
-    asset = requireDoc(await ref.get());
+  input: FinalizeAvatarInput,
+  store: ProfileStore,
+) {
+  await store.assertActive(actor);
+  const asset = await store.readAsset(actor, input.assetId);
   if (asset.ownerUid !== actor.uid) fail("PERMISSION_DENIED");
   if (["READY", "ACTIVE"].includes(asset.state)) return asset;
-  if (asset.state !== "STAGING" || asset.expiresAt.toMillis() < Date.now())
+  if (
+    asset.state !== "STAGING" ||
+    (asset.expiresAt?.getTime() ?? 0) < store.now().getTime()
+  )
     fail("AVATAR_UNAVAILABLE");
-  const image = await prepareAvatarImage(actor.uid, input.assetId, {
-    stagingPath: asset.stagingPath,
-    mimeType: asset.mimeType,
-    sizeBytes: asset.sizeBytes,
-  });
-  return db.runTransaction(async (tx) => {
-    await assertActive(actor, tx);
-    const current = requireDoc(await tx.get(ref));
+  // Decoding and Storage writes run once outside a transaction that Firestore may retry.
+  const image = await store.prepareImage(actor.uid, input.assetId, asset);
+  return store.transaction(actor, true, async (tx) => {
+    const current = (await tx.readAsset(input.assetId)) ?? fail("NOT_FOUND");
     if (["READY", "ACTIVE"].includes(current.state)) return current;
+    const now = store.now().getTime();
     if (
       current.state !== "STAGING" ||
-      current.expiresAt?.toMillis() <= Date.now() ||
-      current.cleanupLeaseUntil?.toMillis() > Date.now()
+      (current.expiresAt?.getTime() ?? 0) <= now ||
+      (current.cleanupLeaseUntil?.getTime() ?? 0) > now
     )
       fail("AVATAR_UNAVAILABLE");
-    const ready = {
+    const ready: AvatarAsset = {
       ...current,
       state: "READY",
       storagePath: image.storagePath,
@@ -92,7 +72,7 @@ export async function finalizeAvatar(
       contentHash: image.contentHash,
       normalizedBytes: image.normalizedBytes,
     };
-    tx.set(ref, ready);
+    tx.saveAsset(ready);
     return ready;
   });
 }

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db, dayKey, type Data } from "../../functions/src/shared/core.js";
-import { gameHandlers } from "../../functions/src/services/game.js";
+import { gameHandlers } from "../../functions/src/routes/game.js";
 import {
   businessCode,
   learner,
@@ -10,8 +10,10 @@ import {
   source,
 } from "./fixtures.js";
 
-const call = async (name: string, input: Data): Promise<Data> =>
-  (await gameHandlers[name](learner, input)) as Data;
+const call = async (
+  name: keyof typeof gameHandlers,
+  input: Data,
+): Promise<Data> => (await gameHandlers[name](learner, input)) as Data;
 const userPath = (suffix: string) => `users/${learner.uid}/${suffix}`;
 const ttsConfig = {
   locale: "en-GB",
@@ -124,17 +126,15 @@ describe("immutable game source and server grading", () => {
   it("never puts two identical selectedMeaningId targets into the same matching round", async () => {
     // Meaning IDs are scoped to a WordVersion in dictionary references. A
     // matching round must nevertheless offer five distinguishable targets.
-    await db
-      .doc("words/journey/versions/1")
-      .update({
-        meanings: [
-          {
-            id: "meaning-book",
-            partOfSpeech: "noun",
-            text: "Nghĩa hành trình",
-          },
-        ],
-      });
+    await db.doc("words/journey/versions/1").update({
+      meanings: [
+        {
+          id: "meaning-book",
+          partOfSpeech: "noun",
+          text: "Nghĩa hành trình",
+        },
+      ],
+    });
     await db
       .doc("systemDecks/test-deck/revisions/revision-one/words/journey")
       .update({ focusMeaningId: "meaning-book" });
@@ -204,15 +204,13 @@ describe("immutable game source and server grading", () => {
       start.firstRound.id,
     );
     const oldCopy = question.wordCopy;
-    await db
-      .doc(`words/${question.wordId}/versions/2`)
-      .set({
-        wordId: question.wordId,
-        version: 2,
-        spelling: "changed-spelling",
-        meanings: [{ id: "changed", text: "Nghĩa mới", partOfSpeech: "noun" }],
-        otherSpellings: [],
-      });
+    await db.doc(`words/${question.wordId}/versions/2`).set({
+      wordId: question.wordId,
+      version: 2,
+      spelling: "changed-spelling",
+      meanings: [{ id: "changed", text: "Nghĩa mới", partOfSpeech: "noun" }],
+      otherSpellings: [],
+    });
     await db
       .doc("dictionaryReleases/new-current-release")
       .set({ state: "PUBLISHED" });
