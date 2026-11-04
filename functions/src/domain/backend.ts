@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { hash } from "../shared/core.js";
+import { hash } from "../shared/values.js";
 export { reviewDays, reviewLevel, currentStreak } from "./learning-rules.js";
 export { normalizeAnswer } from "./game-rules.js";
 
