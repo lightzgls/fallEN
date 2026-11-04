@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "resolveJsonModule": true
+  },
+  "include": [
+    "tools/**/*.ts",
+    "tests/**/*.ts",
+    "playwright.config.ts",
+    "vitest*.ts"
+  ],
+  "exclude": ["admin-web"]
+}
