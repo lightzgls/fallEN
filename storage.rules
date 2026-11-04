@@ -1,0 +1,52 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function active(uid) {
+      return request.auth != null && request.auth.uid == uid
+        && firestore.get(/databases/(default)/documents/accountStates/$(uid)).data.status == 'ACTIVE';
+    }
+    function avatarGrant(uid, assetId) {
+      return firestore.get(/databases/(default)/documents/users/$(uid)/profileAssets/$(assetId)).data;
+    }
+    function contentGrant(assetId) {
+      return firestore.get(/databases/(default)/documents/imageAssets/$(assetId)).data;
+    }
+
+    match /avatars/{uid}/staging/{assetId} {
+      allow create: if resource == null && active(uid)
+        && avatarGrant(uid, assetId).ownerUid == uid
+        && avatarGrant(uid, assetId).state == 'STAGING'
+        && avatarGrant(uid, assetId).stagingPath == 'avatars/' + uid + '/staging/' + assetId
+        && request.resource.size == avatarGrant(uid, assetId).sizeBytes
+        && request.resource.size > 0 && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType == avatarGrant(uid, assetId).mimeType
+        && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp'];
+      allow get: if active(uid);
+      allow list, update, delete: if false;
+    }
+    match /avatars/{uid}/normalized/{assetId} {
+      allow get: if active(uid);
+      allow list, create, update, delete: if false;
+    }
+    match /content/{uid}/{assetId} {
+      allow create: if resource == null && active(uid) && request.auth.token.contentAdmin == true
+        && contentGrant(assetId).createdBy == uid
+        && contentGrant(assetId).state == 'UPLOADED'
+        && contentGrant(assetId).storagePath == 'content/' + uid + '/' + assetId
+        && request.resource.size == contentGrant(assetId).byteSize
+        && request.resource.size > 0 && request.resource.size <= 20 * 1024 * 1024
+        && request.resource.contentType == contentGrant(assetId).contentType
+        && ((contentGrant(assetId).kind == 'IMAGE'
+            && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp'])
+          || (contentGrant(assetId).kind == 'IMPORT'
+            && request.resource.contentType in ['text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/zip']));
+      allow get: if active(uid) && request.auth.token.contentAdmin == true;
+      allow list, update, delete: if false;
+    }
+    // Immutable publication media is served by backend-issued read URLs.
+    // Raw dictionary indexes/imports and arbitrary paths never become public.
+    match /{object=**} {
+      allow read, write: if false;
+    }
+  }
+}

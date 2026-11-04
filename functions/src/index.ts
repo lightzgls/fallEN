@@ -1,0 +1,100 @@
+/** Firebase discovers only public endpoints and jobs re-exported here. */
+export {
+  ensureProfile,
+  getProfile,
+  saveProfile,
+  getAccess,
+  getAccountState,
+  getDeletionInfo,
+  beginAvatarUpload,
+  finalizeAvatar,
+} from "./routes/profile.js";
+export { requestDeletion, getDeletionStatus } from "./routes/deletion.js";
+export {
+  findWords,
+  getWord,
+  getWordVersion,
+  findConnections,
+  getPublishedDecks,
+} from "./routes/dictionary.js";
+export {
+  saveWord,
+  removeWord,
+  getSavedWords,
+  getSavedWordCount,
+  getDueWords,
+  getStudySource,
+  getStudyPlace,
+  getRatingContext,
+  startStudy,
+  startReview,
+  saveRating,
+  endStudy,
+  getStats,
+  getDashboard,
+  getLearningDays,
+  getHeatmap,
+  getDayActivity,
+  getChart,
+  getRecentSets,
+} from "./routes/learning.js";
+export {
+  startGame,
+  createRound,
+  saveRound,
+  endGame,
+  getEligibleGameSource,
+} from "./routes/game.js";
+export {
+  createDeck,
+  openDraft,
+  getDraft,
+  saveDraft,
+  publishSet,
+  listDecks,
+  setDeckActive,
+  previewImport,
+  applyImport,
+  resolveImportRow,
+  getImport,
+  listImports,
+  beginContentUpload,
+  finalizeContentUpload,
+  getImageAsset,
+  getSpeech,
+  saveSpeech,
+  listTopics,
+  getTopic,
+  saveTopic,
+  getLimit,
+  saveLimit,
+} from "./routes/content.js";
+export {
+  submitReport,
+  getReportContext,
+  getMyReports,
+  getMyReport,
+  listReports,
+  getReport,
+  updateReportStatus,
+  closeReport,
+} from "./routes/reports.js";
+export {
+  getChatWords,
+  getTopics,
+  startChat,
+  sendMessage,
+  acknowledgeTurn,
+  endChat,
+  getChatHistory,
+  getChatSummary,
+} from "./routes/chat.js";
+export { getCommandStatus } from "./routes/commands.js";
+export {
+  backgroundWorker,
+  dispatchDeletion,
+  dispatchGame,
+  dispatchImport,
+  dispatchPublication,
+  avatarGarbageCollection,
+} from "./handlers/jobs.js";
