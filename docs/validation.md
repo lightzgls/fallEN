@@ -1,5 +1,13 @@
 # Nghiệm thu local — 04/11/2026
 
+## Review tổ chức code tiếp theo
+
+Đã refactor các file gom nhiều trách nhiệm thành các operation, component và hook theo feature; xem [bản đồ module](code-organization.md). API, schema, receipt và giao diện giữ nguyên. Toàn bộ `.ts`/`.tsx` trong `functions/src`, `admin-web/src` và `tools` hiện không có file vượt 300 dòng; file dài nhất 290 dòng. Đây là kết quả review trách nhiệm, không phải giới hạn dòng được dùng thay kiểm thử.
+
+Kiểm tra lại trên Node22.23.4: lint/typecheck/build đạt; unit19/19; emulator66/66 trong76,46giây; browser3/3 trong39,1giây. Riêng10test học tập/SRS chạy lại và đạt sau khi hàm tạo lịch chuyển sang nhận `Date` để bỏ phụ thuộc Timestamp của Firebase. Log local: `.local/refactor-build.log`, `.local/refactor-emulator.log`, `.local/refactor-learning.log`, `.local/refactor-browser.log`.
+
+Reviewer độc lập đã rà các phần ghép lại (rating/import/AI/profile/pipeline), thứ tự đọc–kiểm chứng–stage trong cùng transaction, receipt/hash/version, command journal/dirty state và graph phụ thuộc; không phát hiện import vòng hay blocker trong phạm vi refactor đã review. Những giới hạn kiểm chứng production bên dưới vẫn giữ nguyên.
+
 Agent chính tích hợp và kiểm tra mã do các subagent viết; không dùng báo cáo subagent làm kết luận hoàn tất. Reviewer độc lập kiểm tra code backend/admin, bảo mật, Clean Code/SOLID và đối chiếu tài liệu. Agent chính kiểm tra lại Rules, test, diff và các sửa lỗi. Chi tiết tại [review record](../tests/review-record.md).
 
 ## Môi trường và kết quả

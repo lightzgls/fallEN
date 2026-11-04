@@ -32,3 +32,24 @@ The root performed the final integrated validation with Node.js 22.23.4 and Andr
 The root separately reviewed the reviewer-authored Rules, fixtures and tests. Storage overwrites are denied explicitly with `resource == null`; the final suite verifies this invariant. Image integration tests fetched actual PNG bytes from the resolved URL and verified private/draft denial.
 
 These checks validate the local implementation. Live Gemini responses, production App Check, IAM, Cloud Tasks/Scheduler delivery and production deployment still require staging validation with the user's configured project and secrets. The open dictionary source/licensing decision D03 remains outside authored demo data. No production readiness or complete visual equivalence is inferred from emulator/browser results.
+
+## Follow-up review: module responsibilities
+
+The reviewer made no production-code changes in this refactor and independently inspected the root, backend and admin agents' changes. The review assessed responsibility and control flow, rather than accepting smaller line counts as proof of improvement.
+
+- The original service files are compatibility facades containing endpoint registries and worker exports. Operations now live in cohesive feature modules: draft/publication/import/configuration, vocabulary/study/rating/statistics, game preparation/rounds/results, AI start/send/ACK/end, report commands/queries/fix validation, and profile/avatar operations. They do not forward their former large implementation into one catch-all helper.
+- Recomputed import/export dependency graphs contain no runtime or type-only cycles. Compatibility barrels do not create a dependency back from a feature into its own facade. Firebase initialization is confined to the backend runtime and frontend Firebase setup; domain modules have no transitive path to the backend initializer. The identified `domain/backend.ts` dependency on the broad core barrel was replaced by a narrow value-helper import. Review-plan calculation now accepts a Date instead of a Firebase Timestamp.
+- Rating orchestration reads and validates the complete state before staging any writes, using the same transaction. The receipt wrapper still runs before stale-version validation. Import preview resolution remains read-only until the batch is staged; row application and final receipt publication retain their original transactions and resumable progress checks.
+- AI repositories preserve request hashes, leases, READY/ACK transitions and receipt-before-version replay. Gemini calls and feedback collection remain outside retriable transaction callbacks. Reply caches remain process RAM; persisted records contain metadata and hashes, not message/context/reply bodies.
+- Avatar byte decoding/upload is separated from activation. The adapter retains MIME, byte/pixel bounds, normalization and create-only Storage preconditions; the service retains owner, expiration, cleanup-lease and profile-version guards. Dictionary tooling separates manifest validation, staging and pointer commit while preserving immutable contents, checksum validation and publication CAS.
+- Admin draft, import and report pages compose focused views and workflow hooks. Command payloads are captured before submission, dirty/unknown states and success callbacks are preserved, and retry/reload still uses the shared command journal. Provider state is separated into session, mutation and draft modules; shared models are separated by domain. Small local view handlers remain with their component where extraction would add indirection without separating a responsibility.
+
+No actionable refactor regression was found in the reviewed local paths. No line-count, reflection or file-layout test was added: those would mirror this implementation rather than protect behavior. The existing behavioral suites provide the regression guard, and the root continues to review the reviewer-authored tests and Rules separately.
+
+Post-refactor validation reported by the root on Node.js 22.23.4:
+
+- Lint, strict typechecking for all workspaces/tools/tests, and both production builds passed.
+- Unit tests: 19/19 passed.
+- Full emulator regression: 66/66 passed in 76.46 seconds; local evidence `.local/refactor-emulator.log`.
+- After the Date-only review-plan adjustment, learning regression: 10/10 passed in 10.59 seconds; local evidence `.local/refactor-learning.log`. Lint/typecheck/build and all 19 unit tests were rerun successfully.
+- Browser regression: 3/3 passed in 39.1 seconds with exit code 0; local evidence `.local/refactor-browser.log`. The root confirmed that the local validation services were stopped afterward.
