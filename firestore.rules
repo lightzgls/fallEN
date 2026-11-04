@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isActiveOwner(uid) {
+      return request.auth != null
+        && request.auth.uid == uid
+        && get(/databases/$(database)/documents/accountStates/$(uid)).data.status == 'ACTIVE';
+    }
+
+    // Personal data is readable only while its owner account is ACTIVE.
+    // Every mutation goes through a Service. Admin claims grant no access to
+    // another learner's vocabulary, progress, game results or AI summaries.
+    match /users/{uid} {
+      allow get: if isActiveOwner(uid);
+      allow list, create, update, delete: if false;
+      match /{collectionName}/{personalDocument=**} {
+        // Games and command receipts are read through their Callable Services.
+        // In particular, report-context DTOs omit an uncommitted listen answer.
+        allow read: if isActiveOwner(uid) && collectionName in [
+          'personalWords', 'wordProgress', 'srsSchedules', 'studySessions',
+          'assessmentEvents', 'flashcardPositions', 'learningDays',
+          'deckActivity', 'dashboard', 'aiDailyUsage', 'aiSessions',
+          'aiSummaries', 'profileAssets'
+        ];
+        allow write: if false;
+      }
+    }
+
+    // Public dictionary and published content reads are resolved by Callable
+    // Services so a read can pin one public release/revision consistently.
+    // Reports also use Services to remove reviewer/audit identifiers from the
+    // learner DTO. Content admin and pipeline writes are separate IAM paths.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
