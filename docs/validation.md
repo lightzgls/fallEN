@@ -1,5 +1,21 @@
 # Nghiệm thu local — 04/11/2026
 
+## Tách trách nhiệm các lớp backend
+
+Backend hiện có `routes/`, `middleware/`, `controllers/`, `services/`, `contracts/`, `domain/` và `infrastructure/`; xem [luồng và trách nhiệm từng lớp](backend-layers.md). Controllers validate request, services nhận input typed và store được inject, domain giữ quy tắc thuần, adapter thực hiện Firebase/Auth/Storage/query/transaction. Quy tắc chọn nguồn từ điển, lease/ACK/ENDING AI, checkpoint xóa tài khoản và điều kiện GC avatar cũng được tách khỏi SDK. Web admin và hợp đồng Callable giữ nguyên.
+
+Kiểm tra cuối trên Node.js 22.23.4:
+
+- Lint, strict typecheck toàn bộ backend/admin/tools/tests, Functions build và Vite build đạt.
+- Unit **71/71**, 14 file; có test store được inject, controller/guard/error mapping, receipt collision, nguồn retained và GC lease.
+- Emulator **68/68**, 11 file, trong **63,17 giây**. Hai ca mới ghi command SUCCEEDED/IN_PROGRESS của operation khác rồi kiểm tra start/end chat từ chối COMMAND_REUSED trước decode receipt/CAS, giữ quota và trạng thái.
+- Browser **3/3** trong **38,2 giây**, dùng Auth/Callable/Tasks emulator thật cho publish/reload/quota, learner denial và import.
+- Audit 169 module giữ đủ **84/84** export endpoint/job; không import thiếu/sai case, vòng phụ thuộc hay phụ thuộc infrastructure/Firebase runtime từ service/domain. Mọi file production backend dưới 300 dòng. Alias kiểu `Data` cũ cho rich lexical data vẫn là ngoại lệ type-only đã ghi rõ trong hướng dẫn lớp backend.
+
+Reviewer độc lập đã rà quyết định nghiệp vụ, transaction, worker, public exports và test hồi quy. Agent chính review lại các test controller/middleware do reviewer viết, kiểm tra các service callback, sửa nhận xét, tích hợp và chạy toàn bộ pipeline. Lần emulator đầu phát hiện receipt profile replay trả Timestamp trong khi kết quả đầu dùng Date; đã chuẩn hóa tại adapter và chạy lại đầy đủ, giữ nguyên assertion so sánh receipt. Các tiến trình kiểm thử đã dừng.
+
+Log local bị gitignore: `.local/layering-typecheck.log`, `.local/layering-lint.log`, `.local/layering-build.log`, `.local/layering-unit.log`, `.local/layering-emulator-final.log`, `.local/layering-browser.log`, `.local/layering-audit.log`. Giới hạn kiểm chứng môi trường thật bên dưới vẫn áp dụng.
+
 ## Chuẩn hóa tên file
 
 Đổi 70 đường dẫn theo [quy ước đặt tên](code-organization.md#quy-ước-đặt-tên-file), đồng bộ tên component/hook và import; tách hai màn `Topics.tsx` và `Limit.tsx` từ file AI chung. Đối chiếu AST của 194 file TS/TSX với commit trước, sau khi chuẩn hóa import và các identifier được đổi tên, không thấy thay đổi phần thân mã. Tên Callable, payload và schema giữ nguyên.

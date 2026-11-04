@@ -11,7 +11,7 @@ Backend phục vụ Android và web admin React/TypeScript/Vite theo ba tab tài
 - Admin: chọn từ chỉ đọc; draft/học liệu/ảnh; CSV/XLSX và ảnh/ZIP; preview/đối chiếu/apply; publish nguyên tử; TTS; tình huống/quota AI; xử lý báo lỗi.
 - AI qua Gemini adapter: quota phiên, turn lease, REPLY_READY/ACK, tối đa 15 cặp, tổng kết. Không lưu transcript/message/context/reply trong Firestore, Tasks hoặc log.
 
-Xem [contract và kiến trúc](docs/architecture.md), [tổ chức module](docs/code-organization.md), [biên bản review độc lập](tests/review-record.md) và [bằng chứng nghiệm thu](docs/validation.md). Source thiết kế ở thư mục `fallen-design/` bên cạnh repo; Google Docs/Figma được liên kết trong contract.
+Xem [contract và kiến trúc](docs/architecture.md), [các lớp và luồng backend](docs/backend-layers.md), [tổ chức module](docs/code-organization.md), [biên bản review độc lập](tests/review-record.md) và [bằng chứng nghiệm thu](docs/validation.md). Source thiết kế ở thư mục `fallen-design/` bên cạnh repo; Google Docs/Figma được liên kết trong contract.
 
 ## Chạy local trên Windows
 
