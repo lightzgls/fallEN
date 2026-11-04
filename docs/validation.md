@@ -41,8 +41,8 @@ Node.js **22.23.4**, npm10.9.9, Windows, Android Studio JBR25. Functions target 
 | ESLint toàn bộ source/tools/tests                   | Đạt                 |
 | TypeScript strict backend/admin/tools/tests         | Đạt                 |
 | Functions build + Vite production build             | Đạt                 |
-| Unit tests                                          | **19/19**, 5 files  |
-| Auth/Firestore/Storage emulator integration + Rules | **66/66**, 11 files |
+| Unit tests                                          | **71/71**, 14 files |
+| Auth/Firestore/Storage emulator integration + Rules | **68/68**, 11 files |
 | Chrome với Auth/Callable/Tasks emulator thật        | **3/3**             |
 | Diff whitespace và rà file secret/build output      | Đạt trước commit    |
 
@@ -54,15 +54,15 @@ Các lỗi từng tìm thấy đã được sửa và kiểm tra lại: overwrit
 
 ## Chưa kiểm chứng ở môi trường thật
 
-- Chưa deploy Firebase/GitHub Actions, chưa xác minh IAM, Cloud Tasks retries/Scheduler/App Check production.
+- Chưa deploy Firebase, chưa xác minh IAM, Cloud Tasks retries/Scheduler/App Check production. GitHub Actions được cấu hình chạy các kiểm tra khi mở PR hoặc push vào `main`.
 - Gemini thật chưa gọi vì không có key triển khai; tests thay **chỉ adapter Gemini** bằng ChatApi xác định, còn quota/lease/ACK/summary dùng Firestore thật trong emulator. Không khẳng định model/free-tier đã sẵn sàng trong project người dùng.
 - Google sign-in và Android TTS/device flow chưa chạy trên nhà cung cấp/thiết bị thật. Giao diện Android nằm ngoài phạm vi.
 - D03 về nguồn/giấy phép từ điển chưa được quyết định. Seed12từ tự soạn phục vụ local; không thay bằng dữ liệu nhà cung cấp chưa được phép.
 
 ## Git và vận hành
 
-Repo local riêng, nhánh `feat/firebase-admin`; Conventional Commits tách foundation, nghiệp vụ backend, admin, integration/security fixes và kiểm thử/cấu hình vận hành. `main` giữ baseline; chưa merge nhánh.
+Repo private [lightzgls/fallEN](https://github.com/lightzgls/fallEN), remote `origin` dùng HTTPS. Theo GitHub Flow, `main` giữ baseline khởi tạo; toàn bộ backend/admin nằm trên `feat/firebase-admin` để tích hợp qua PR. Conventional Commits tách foundation, nghiệp vụ backend, admin, integration/security fixes, phân lớp và bằng chứng kiểm thử; chưa merge nhánh.
 
-Chưa có remote/PR. GitHub CLI chưa khả dụng và không có phiên đăng nhập thông thường được xác nhận. Automatic approval review đã từ chối liệt kê tài khoản từ credential store; không tiếp tục truy cập bằng cách khác. Sau khi người dùng đăng nhập GitHub CLI thông thường, có thể tạo private remote/push/PR từ nhánh hiện tại.
+GitHub CLI dùng đăng nhập web thông thường do người dùng xác nhận. Trước khi xuất bản đã kiểm tra private visibility, diff và toàn bộ lịch sử Git theo các mẫu token/private key/API key; không phát hiện secret hay build output bị commit. Runtime, CLI portable và log nằm trong `.local/`, bị gitignore.
 
 Các tiến trình kiểm thử được dừng sau khi chạy. Thư mục `.local/` giữ log/screenshot/runtime kiểm tra và bị gitignore. Chạy lại theo [README](../README.md); integration tests cố ý xóa dữ liệu **demo emulator**, không chạy đồng thời phiên demo đang sử dụng.
