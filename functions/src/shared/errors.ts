@@ -1,20 +1,19 @@
-import { HttpsError } from "firebase-functions/v2/https";
+export interface ValidationField {
+  path: string;
+  message: string;
+}
 
-/** Stable business codes remain separate from Firebase transport status codes. */
+/** Business failures are independent of the Callable transport. */
+export class ApplicationError extends Error {
+  readonly details: { code: string; fields?: ValidationField[] };
+
+  constructor(code: string, message = code, fields?: ValidationField[]) {
+    super(message);
+    this.name = "ApplicationError";
+    this.details = { code, ...(fields ? { fields } : {}) };
+  }
+}
+
 export function fail(code: string, message = code): never {
-  const status =
-    code === "CONFLICT" || code === "IMPORT_STALE"
-      ? "aborted"
-      : code === "UNAUTHENTICATED"
-        ? "unauthenticated"
-        : code === "PERMISSION_DENIED"
-          ? "permission-denied"
-          : code.endsWith("NOT_FOUND")
-            ? "not-found"
-            : code === "VALIDATION_FAILED" || code === "COMMAND_REUSED"
-              ? "invalid-argument"
-              : code.includes("LIMIT") || code === "RATE_LIMITED"
-                ? "resource-exhausted"
-                : "failed-precondition";
-  throw new HttpsError(status, message, { code });
+  throw new ApplicationError(code, message);
 }

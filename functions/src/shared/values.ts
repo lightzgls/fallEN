@@ -1,12 +1,20 @@
 import { createHash, randomUUID } from "node:crypto";
-import { Timestamp } from "firebase-admin/firestore";
 import { fail } from "./errors.js";
 import { type Data } from "./types.js";
 
 export const id = (): string => randomUUID();
 
+function isStoredTimestamp(value: unknown): value is { toDate(): Date } {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "toDate" in value &&
+    typeof value.toDate === "function"
+  );
+}
+
 function canonical(value: unknown): unknown {
-  if (value instanceof Timestamp) return value.toDate().toISOString();
+  if (isStoredTimestamp(value)) return value.toDate().toISOString();
   if (value instanceof Date) return value.toISOString();
   if (Array.isArray(value)) return value.map(canonical);
   if (value && typeof value === "object") {
@@ -27,7 +35,7 @@ export function hash(value: unknown): string {
 }
 
 export function serialize(value: unknown): unknown {
-  if (value instanceof Timestamp) return value.toDate().toISOString();
+  if (isStoredTimestamp(value)) return value.toDate().toISOString();
   if (value instanceof Date) return value.toISOString();
   if (Array.isArray(value)) return value.map(serialize);
   if (value && typeof value === "object") {

@@ -29,14 +29,25 @@ export const requestDeletion = callable(
     "requestDeletion",
     deletion.requestDeletion,
   ),
-  getDeletionStatus = callable("getDeletionStatus", deletion.getDeletionStatus);
-export const findWords = callable("findWords", dictionary.findWords),
-  getWord = callable("getWord", dictionary.getWord),
-  getWordVersion = callable("getWordVersion", dictionary.getWordVersion),
-  findConnections = callable("findConnections", dictionary.findConnections),
+  getDeletionStatus = callable(
+    "getDeletionStatus",
+    deletion.getDeletionStatus,
+    { access: "public" },
+  );
+export const findWords = callable("findWords", dictionary.findWords, {
+    access: "public",
+  }),
+  getWord = callable("getWord", dictionary.getWord, { access: "public" }),
+  getWordVersion = callable("getWordVersion", dictionary.getWordVersion, {
+    access: "public",
+  }),
+  findConnections = callable("findConnections", dictionary.findConnections, {
+    access: "public",
+  }),
   getPublishedDecks = callable(
     "getPublishedDecks",
     dictionary.getPublishedDecks,
+    { access: "public" },
   );
 export const saveWord = callable("saveWord", learning.saveWord),
   removeWord = callable("removeWord", learning.removeWord),

@@ -1,4 +1,4 @@
-import { HttpsError } from "firebase-functions/v2/https";
+import { ApplicationError } from "../../shared/errors.js";
 import { turnSchema } from "../../domain/chat-commands.js";
 import { type ChatApi } from "../../domain/chat.js";
 import { type Actor, type Data } from "../../shared/types.js";
@@ -37,7 +37,7 @@ export async function sendMessage(
     ).reply;
   } catch (error) {
     await recordTurnFailure(actor, req, leaseId);
-    if (error instanceof HttpsError) throw error;
+    if (error instanceof ApplicationError) throw error;
     return {
       turnId: req.turnId,
       chatVersion: req.expectedVersion,

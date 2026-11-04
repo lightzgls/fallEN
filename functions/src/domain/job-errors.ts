@@ -1,11 +1,8 @@
-import { HttpsError } from "firebase-functions/v2/https";
-import { z } from "zod";
+import { ApplicationError } from "../shared/errors.js";
 
 /** Only stable business failures finish a job. Transport and service failures remain retryable. */
 export function businessErrorCode(error: unknown): string | undefined {
-  if (!(error instanceof HttpsError)) return undefined;
-  const result = z.object({ code: z.string() }).safeParse(error.details);
-  return result.success ? result.data.code : undefined;
+  return error instanceof ApplicationError ? error.details.code : undefined;
 }
 
 export function isPermanentJobFailure(code: string | undefined): boolean {

@@ -1,7 +1,6 @@
 import { type DocumentSnapshot } from "firebase-admin/firestore";
-import { HttpsError } from "firebase-functions/v2/https";
 import { z } from "zod";
-import { fail } from "./errors.js";
+import { ApplicationError, fail } from "./errors.js";
 import { type Data } from "./types.js";
 
 export const identifier = z
@@ -23,13 +22,14 @@ export function parse<S extends z.ZodType>(
 ): z.output<S> {
   const result = schema.safeParse(input);
   if (!result.success) {
-    throw new HttpsError("invalid-argument", "Dữ liệu không hợp lệ.", {
-      code: "VALIDATION_FAILED",
-      fields: result.error.issues.map((issue) => ({
+    throw new ApplicationError(
+      "VALIDATION_FAILED",
+      "Dữ liệu không hợp lệ.",
+      result.error.issues.map((issue) => ({
         path: issue.path.join("."),
         message: issue.message,
       })),
-    });
+    );
   }
   return result.data;
 }
