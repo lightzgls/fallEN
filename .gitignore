@@ -1,0 +1,16 @@
+node_modules/
+dist/
+lib/
+.firebase/
+*-debug.log*
+.env*
+!.env.example
+!.env.local.example
+!.env.demo-fallen.example
+coverage/
+test-results/
+playwright-report/
+.local/
+*.tsbuildinfo
+*.pem
+*service-account*.json

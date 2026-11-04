@@ -1,0 +1,6 @@
+{
+  "name":"@fallen/functions","version":"0.1.0","private":true,"main":"lib/index.js","engines":{"node":"22"},
+  "scripts":{"build":"tsc","typecheck":"tsc --noEmit"},
+  "dependencies":{"firebase-admin":"latest","firebase-functions":"latest","zod":"latest","sharp":"latest","@google/genai":"latest","papaparse":"latest","xlsx":"https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"},
+  "devDependencies":{"@types/papaparse":"latest"}
+}
