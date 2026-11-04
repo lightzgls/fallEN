@@ -18,7 +18,7 @@ export function StoredImage({
     setFailed(false);
     if (assetId)
       void api("getImageAsset", { assetId })
-        .then((asset) => assetUrl(asset.storagePath))
+        .then((asset) => asset.url ?? assetUrl(asset.storagePath))
         .then((value) => {
           if (active) setUrl(value);
         })

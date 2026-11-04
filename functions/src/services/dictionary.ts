@@ -277,15 +277,51 @@ async function findWords(_actor: Actor, raw: unknown): Promise<Data> {
   const entries = await searchIndex(release);
   const ranks = new Map<
     string,
-    { wordId: string; wordVersion: number; rank: number; key: string }
+    {
+      wordId: string;
+      wordVersion: number;
+      rank: number;
+      key: string;
+      spelling: string;
+    }
   >();
-  const primary = entries.filter(
+  const possible = entries.filter(
+    (item) =>
+      item.key === query ||
+      item.key.startsWith(query) ||
+      (query.length >= 3 && distance(item.key, query) <= 1),
+  );
+  const eligible: Array<SearchEntry & { spelling: string }> = [];
+  const aliasesByWord = new Map<string, SearchEntry[]>();
+  for (const item of possible) {
+    const aliases = aliasesByWord.get(item.wordId) ?? [];
+    aliases.push(item);
+    aliasesByWord.set(item.wordId, aliases);
+  }
+  for (const [wordId, aliases] of aliasesByWord) {
+    const entry = (
+      await read(`dictionaryReleases/${release.id}/entries/${wordId}`)
+    ).data();
+    if (!entry?.active) continue;
+    const word = await readWordVersion(wordId, entry.wordVersion);
+    if (
+      input.partOfSpeech &&
+      !word.meanings.some(
+        (meaning: Data) => meaning.partOfSpeech === input.partOfSpeech,
+      )
+    )
+      continue;
+    for (const item of aliases)
+      if (item.wordVersion === entry.wordVersion)
+        eligible.push({ ...item, spelling: word.spelling });
+  }
+  const primary = eligible.filter(
     (item) => item.key === query || item.key.startsWith(query),
   );
   const matches = primary.length
     ? primary
     : query.length >= 3
-      ? entries.filter((item) => distance(item.key, query) <= 1)
+      ? eligible.filter((item) => distance(item.key, query) <= 1)
       : [];
   for (const item of matches) {
     const rank = item.key === query ? 0 : item.key.startsWith(query) ? 1 : 2;
@@ -296,27 +332,10 @@ async function findWords(_actor: Actor, raw: unknown): Promise<Data> {
   const ordered = [...ranks.values()].sort(
     (a, b) =>
       a.rank - b.rank ||
-      a.key.localeCompare(b.key, "en") ||
+      a.spelling.localeCompare(b.spelling, "en") ||
       a.wordId.localeCompare(b.wordId),
   );
-  const sorted = [];
-  for (const item of ordered) {
-    const entry = (
-      await read(`dictionaryReleases/${release.id}/entries/${item.wordId}`)
-    ).data();
-    if (entry?.active && entry.wordVersion === item.wordVersion) {
-      if (input.partOfSpeech) {
-        const word = await readWordVersion(item.wordId, item.wordVersion);
-        if (
-          !word.meanings.some(
-            (meaning: Data) => meaning.partOfSpeech === input.partOfSpeech,
-          )
-        )
-          continue;
-      }
-      sorted.push(item);
-    }
-  }
+  const sorted = ordered;
   if (!primary.length) sorted.splice(5);
   const offset = cursor?.offset ?? 0;
   if (!Number.isSafeInteger(offset) || offset < 0 || offset > sorted.length)

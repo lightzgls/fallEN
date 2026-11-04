@@ -75,6 +75,8 @@ export interface ImageAsset {
   state: string;
   checksum?: string;
   originalFileName?: string;
+  url?: string;
+  expiresAt?: string;
 }
 export interface UploadGrant {
   assetId: string;

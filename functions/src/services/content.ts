@@ -28,6 +28,7 @@ import {
   businessErrorCode,
   isPermanentJobFailure,
 } from "../domain/backend-errors.js";
+import { resolveImageAsset } from "../infrastructure/asset-resolver.js";
 
 const publishSchema = z
   .object({
@@ -1092,9 +1093,20 @@ export const contentHandlers: Record<
     };
   },
   async getImageAsset(actor, raw) {
-    const req = parse(z.object({ assetId: objectId }).strict(), raw);
-    await admin(actor);
-    return requireDoc(await db.doc(`imageAssets/${req.assetId}`).get());
+    const req = parse(
+      z
+        .object({
+          assetId: objectId,
+          wordSetId: objectId.optional(),
+          revisionId: objectId.optional(),
+          wordId: objectId.optional(),
+          wordVersion: z.number().int().positive().optional(),
+          releaseId: objectId.optional(),
+        })
+        .strict(),
+      raw,
+    );
+    return resolveImageAsset(actor, req);
   },
   async getSpeech(actor, raw) {
     const req = parse(z.object({ wordId: objectId }).strict(), raw);

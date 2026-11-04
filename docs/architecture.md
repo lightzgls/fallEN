@@ -42,6 +42,8 @@ Each service exports a `Record<string, (actor:Actor,input:unknown)=>Promise<unkn
 
 Errors use Callable HttpsError.details `{code:<stable business code>}` such as CONFLICT, ACCOUNT_DELETING, DICTIONARY_NOT_READY, RELEASE_UNAVAILABLE, IMPORT_STALE, VALIDATION_FAILED, PERMISSION_DENIED. UI distinguishes loading/empty/error/saving/conflict/unknown; retains command ID and identical payload after uncertain writes and polls status before retry.
 
+Image reads: `getImageAsset({assetId,wordSetId?,revisionId?,wordId?,wordVersion?,releaseId?})` preserves the admin metadata read. An ACTIVE learner supplies a verified public/retired deck cover or SetWord context, or an exact public release/WordVersion default Meaning context. It returns safe metadata/checksum and a short-lived read URL; assetId alone never grants learner access to a draft or upload. Raw Storage paths stay server-side for learners.
+
 ## Ownership during implementation
 
 Root: shared core, dictionary, profile/avatar/deletion/chat, handler wiring, seed/dictionary tools, package/lock/config/docs/Git/integration. Backend agent: learning/game/content/report services and their own domain modules only. Admin agent: admin-web only. Review agent: tests/, root vitest configs, firestore.rules/storage.rules/firestore.indexes.json only; read-only review of implementation. No subagent Git or dependency install; request root changes to shared files/contracts.
