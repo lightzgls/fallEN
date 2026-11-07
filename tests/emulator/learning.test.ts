@@ -5,7 +5,10 @@ import {
   addDays,
   type Data,
 } from "../../functions/src/shared/core.js";
-import { learningHandlers } from "../../functions/src/routes/learning.js";
+import {
+  learningHandlers,
+  syncVocabularyRequest,
+} from "../../functions/src/routes/learning.js";
 import {
   businessCode,
   learner,
@@ -28,6 +31,39 @@ beforeEach(async () => {
 });
 
 describe("one personal vocabulary and SRS lifecycle", () => {
+  it("replays an offline removal without deleting a later save and scopes sync to its owner", async () => {
+    const save = {
+      owner: learner.uid,
+      action: "save",
+      wordId: "book",
+      commandId: "save-from-phone",
+    };
+    const remove = {
+      ...save,
+      action: "remove",
+      commandId: "remove-from-phone",
+    };
+    await syncVocabularyRequest(learner, save);
+    await syncVocabularyRequest(learner, remove);
+    expect(
+      await syncVocabularyRequest(learner, {
+        owner: learner.uid,
+        action: "list",
+      }),
+    ).toMatchObject({
+      items: [{ wordId: "book", active: false, membershipVersion: 2 }],
+    });
+    await syncVocabularyRequest(learner, { ...save, commandId: "save-later" });
+    await syncVocabularyRequest(learner, remove);
+    expect(await read(userPath("personalWords/book"))).toMatchObject({
+      active: true,
+      membershipVersion: 3,
+    });
+    expect(
+      await businessCode(syncVocabularyRequest(otherLearner, remove)),
+    ).toBe("PERMISSION_DENIED");
+  });
+
   it("deduplicates save sources without resetting the active schedule and creates a fresh cycle only after deletion", async () => {
     const first = await call("saveWord", {
       wordId: "book",

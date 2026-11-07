@@ -4,6 +4,7 @@ import {
   type DictionaryManifest,
 } from "../../tools/dictionary/publish.js";
 import { dictionaryHandlers } from "../../functions/src/routes/dictionary.js";
+import { offlineRelease } from "../../functions/src/infrastructure/dictionary/offline-release.js";
 import type { Data } from "../../functions/src/shared/core.js";
 import {
   businessCode,
@@ -64,6 +65,49 @@ beforeEach(async () => {
 });
 
 describe("operator-only immutable dictionary release pipeline", () => {
+  it("delivers published additions, updated versions and removals for an existing offline copy", async () => {
+    const first = manifest();
+    await publishDictionaryManifest(first, 1, "offline-first");
+    const initial = await offlineRelease({});
+    expect(initial.changes.map((item) => item.wordId)).toEqual([
+      "alpha",
+      "beta",
+    ]);
+
+    const second = manifest("pipeline-two");
+    const [alpha, beta] = second.words;
+    alpha.version++;
+    alpha.meanings[0].text = "Nghĩa đã sửa";
+    beta.active = false;
+    second.words.push({
+      ...alpha,
+      wordId: "gamma",
+      spelling: "gamma",
+      otherSpellings: [],
+      version: 1,
+    });
+    second.connections = [];
+    await publishDictionaryManifest(second, 2, "offline-second");
+
+    const updated = await offlineRelease({ base: first.releaseId });
+    expect(updated.releaseId).toBe(second.releaseId);
+    expect(updated.changes).toEqual([
+      expect.objectContaining({
+        wordId: "alpha",
+        word: expect.objectContaining({ version: 2, meanings: alpha.meanings }),
+      }),
+      { wordId: "beta", removed: true },
+      expect.objectContaining({
+        wordId: "gamma",
+        word: expect.objectContaining({ version: 1 }),
+      }),
+    ]);
+    expect(await offlineRelease({ base: second.releaseId })).toEqual({
+      releaseId: second.releaseId,
+      changes: [],
+    });
+  });
+
   it("publishes an internally verified release once and retains the old public version", async () => {
     const input = manifest();
     const first = await publishDictionaryManifest(

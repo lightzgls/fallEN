@@ -88,6 +88,25 @@ export function removeWord(
     return { savedWord };
   });
 }
+
+export function removeOfflineWord(
+  store: VocabularyStore,
+  actor: Actor,
+  req: { wordId: string; commandId: string },
+) {
+  return store.command(actor, "removeOfflineWord", req, async (ctx, now) => {
+    const current = await ctx.membership(req.wordId);
+    if (!current?.active) return { removed: true };
+    ctx.saveMembership({
+      ...current,
+      active: false,
+      removedAt: now,
+      membershipVersion: current.membershipVersion + 1,
+    });
+    ctx.removePlan(req.wordId);
+    return { removed: true };
+  });
+}
 export function getSavedWords(
   store: VocabularyStore,
   actor: Actor,

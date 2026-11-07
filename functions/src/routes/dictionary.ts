@@ -2,6 +2,15 @@ import { callable } from "../handlers/callable.js";
 import { createDictionaryControllers } from "../controllers/dictionary.js";
 import { createDictionaryService } from "../services/dictionary.js";
 import { dictionaryStore } from "../infrastructure/dictionary/store.js";
+import { offlineRelease } from "../infrastructure/dictionary/offline-release.js";
+
+export const getOfflineDictionary = callable(
+  "getOfflineDictionary",
+  (_actor, raw) => offlineRelease(raw),
+  {
+    access: "public",
+  },
+);
 
 export const dictionaryHandlers = createDictionaryControllers(
   createDictionaryService(dictionaryStore),

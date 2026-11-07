@@ -1,9 +1,10 @@
+import { readFile } from "node:fs/promises";
 import { getAuth } from "firebase-admin/auth";
 import { Timestamp } from "firebase-admin/firestore";
 import { db, type Data } from "../functions/src/shared/core.js";
 import {
+  manifestSchema,
   publishDictionaryManifest,
-  type DictionaryManifest,
 } from "./dictionary/publish.js";
 
 if (
@@ -40,64 +41,38 @@ for (const [uid, email, contentAdmin] of [
     await db
       .doc(`accountStates/${uid}`)
       .set({ uid, status: "ACTIVE", version: 1, updatedAt: Timestamp.now() });
-    await db
-      .doc(`users/${uid}`)
-      .set({
-        uid,
-        displayName: user.displayName,
-        avatarMode: "DEFAULT",
-        profileVersion: 1,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
-      });
+    await db.doc(`users/${uid}`).set({
+      uid,
+      displayName: user.displayName,
+      avatarMode: "DEFAULT",
+      profileVersion: 1,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
   }
 }
-const authored = [
-  ["journey", "hành trình", "noun"],
-  ["reservation", "sự đặt trước", "noun"],
-  ["available", "có sẵn", "adjective"],
-  ["station", "nhà ga", "noun"],
-  ["ticket", "vé", "noun"],
-  ["arrival", "sự đến nơi", "noun"],
-  ["depart", "khởi hành", "verb"],
-  ["return", "trở về", "verb"],
-  ["luggage", "hành lý", "noun"],
-  ["platform", "sân ga", "noun"],
-  ["book", "đặt chỗ", "verb"],
-  ["request", "yêu cầu", "verb"],
-] as const;
-const manifest: DictionaryManifest = {
-  releaseId: "demo-authored-v1",
-  sources: [
-    {
-      sourceId: "fallen-authored-demo",
-      name: "fallEN authored local examples",
-      version: "1",
-      license:
-        "Original demonstration text; not a dictionary provider dataset.",
-      redistributionAllowed: true,
-    },
-  ],
-  words: authored.map(([spelling, text, partOfSpeech]) => ({
-    wordId: spelling,
-    version: 1,
-    spelling,
-    otherSpellings: [],
-    meanings: [{ id: `${spelling}-meaning`, text, partOfSpeech }],
-    dictionaryRefs: [
-      {
-        sourceId: "fallen-authored-demo",
-        sourceEntryId: spelling,
-        sourceVersion: "1",
-      },
-    ],
-    active: true,
-    listenAllowed: true,
-  })),
-  connections: [],
-};
-await publishDictionaryManifest(manifest, 0, "demo-publish-v1");
-if (!(await db.doc("systemDecks/travel").get()).exists) {
+const manifest = manifestSchema.parse(
+  JSON.parse(
+    await readFile(
+      new URL("./dictionary/sample-dictionary.json", import.meta.url),
+      "utf8",
+    ),
+  ),
+);
+const active = (await db.doc("config/dictionary").get()).data();
+const shouldPublishSample =
+  !active?.activeReleaseId || active.activeReleaseId === "demo-authored-v1";
+if (shouldPublishSample) {
+  await publishDictionaryManifest(
+    manifest,
+    active?.version ?? 0,
+    "demo-publish-v2",
+  );
+}
+if (
+  (shouldPublishSample || active?.activeReleaseId === manifest.releaseId) &&
+  !(await db.doc("systemDecks/travel").get()).exists
+) {
   const batch = db.batch(),
     now = Timestamp.now();
   batch.create(db.doc("systemDecks/travel"), {
@@ -120,14 +95,31 @@ if (!(await db.doc("systemDecks/travel").get()).exists) {
     createdBy: "demo-admin",
     createdAt: now,
   });
-  for (const [wordIndex, word] of manifest.words.entries())
+  const travelIds = [
+    "journey",
+    "reservation",
+    "available",
+    "station",
+    "ticket",
+    "arrival",
+    "depart",
+    "return",
+    "luggage",
+    "platform",
+    "book",
+    "request",
+  ];
+  const travelWords = travelIds.map((id) =>
+    manifest.words.find((word) => word.wordId === id)!,
+  );
+  for (const [wordIndex, word] of travelWords.entries())
     batch.create(
       db.doc(`systemDecks/travel/revisions/travel-v1/words/${word.wordId}`),
       {
         wordSetId: "travel",
         revisionId: "travel-v1",
         wordId: word.wordId,
-        wordVersion: 1,
+        wordVersion: word.version,
         position: wordIndex,
         focusMeaningId: word.meanings[0].id,
       },

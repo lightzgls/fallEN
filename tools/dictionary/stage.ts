@@ -102,27 +102,47 @@ export async function stageRelease(
       .save(indexBytes, { contentType: "application/json", resumable: false });
     const [downloaded] = await bucket.file(searchIndexPath).download();
     if (hash(downloaded.toString()) !== searchIndexHash) fail("INDEX_INVALID");
+    const offlineIndex = JSON.stringify(
+      manifest.words
+        .filter((word) => word.active)
+        .map((word) => ({ wordId: word.wordId, version: word.version })),
+    );
+    const offlineIndexPath = `dictionary/${manifest.releaseId}/offline-index.json`;
+    const offlineIndexHash = hash(offlineIndex);
+    await bucket
+      .file(offlineIndexPath)
+      .save(offlineIndex, {
+        contentType: "application/json",
+        resumable: false,
+      });
+    const [downloadedOfflineIndex] = await bucket
+      .file(offlineIndexPath)
+      .download();
+    if (hash(downloadedOfflineIndex.toString()) !== offlineIndexHash)
+      fail("INDEX_INVALID");
+    const [entries, keyDocs, connectionDocs] = await Promise.all([
+      releaseRef.collection("entries").count().get(),
+      releaseRef.collection("keys").count().get(),
+      releaseRef.collection("connections").count().get(),
+    ]);
     await db.runTransaction(async (tx) => {
       const release = requireDoc(await tx.get(releaseRef));
-      const [entries, keyDocs, connectionDocs] = await Promise.all([
-        tx.get(releaseRef.collection("entries")),
-        tx.get(releaseRef.collection("keys")),
-        tx.get(releaseRef.collection("connections")),
-      ]);
       if (
         release.state !== "STAGING" ||
         release.contentHash !== contentHash ||
-        entries.size !== words.size ||
-        keyDocs.size !== keys.size ||
-        connectionDocs.size !== connections.size
+        entries.data().count !== words.size ||
+        keyDocs.data().count !== keys.size ||
+        connectionDocs.data().count !== connections.size
       )
         fail("MANIFEST_MISMATCH");
       tx.update(releaseRef, {
         state: "READY",
-        entryCount: entries.size,
-        connectionCount: connectionDocs.size,
+        entryCount: entries.data().count,
+        connectionCount: connectionDocs.data().count,
         searchIndexPath,
         searchIndexHash,
+        offlineIndexPath,
+        offlineIndexHash,
       });
     });
   }

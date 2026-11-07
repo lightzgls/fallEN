@@ -2,6 +2,8 @@
 
 Backend phục vụ Android và web admin React/TypeScript/Vite theo ba tab tài liệu hiện hành và native Figma ngày 04/11/2026. Không có giao diện Android trong repo này.
 
+Ứng dụng Android được phát triển trong repo riêng [fallen-mobile](https://github.com/lightzgls/fallen-mobile), thư mục local `../fallen-mobile/`. Repo hiện tại tiếp tục chứa backend Firebase, admin web và công cụ dữ liệu từ điển. Hai repo tích hợp qua hợp đồng Callable, không dùng chung một workspace build.
+
 ## Phạm vi
 
 - Firebase Auth/claims/AccountState; hồ sơ, avatar chuẩn hóa WebP và xóa tài khoản có checkpoint/lease.
@@ -36,6 +38,10 @@ Terminal 2:
 npm run seed
 npm run dev
 ```
+
+Seed nạp 50 mục từ Anh–Việt tự soạn từ `tools/dictionary/sample-dictionary.json`.
+Cùng nguồn này được dùng để tạo dữ liệu tra cứu có sẵn trên Android bằng
+`node tools/dictionary/generate-android-sample.mjs`.
 
 Mở [admin local](http://127.0.0.1:5173) và [Emulator UI](http://127.0.0.1:4000). Seed chạy lặp an toàn trong `demo-fallen`, không reset dữ liệu đã sửa. Tài khoản admin: `admin@fallen.local`; learner: `learner@fallen.local`; mật khẩu thử **chỉ trên emulator**: `Local-demo-2026!`. Có thể đặt `SEED_PASSWORD`, `SEED_ADMIN_EMAIL`, `SEED_LEARNER_EMAIL` trước seed. Không dùng các giá trị này cho môi trường thật.
 
@@ -78,7 +84,9 @@ Tác vụ dài có event dispatch + Cloud Tasks retry; dữ liệu trạng thái
 
 ## Từ điển và vận hành
 
-D03 chưa chốt nguồn/giấy phép từ điển. Seed là 12 mục từ tự soạn, không phải dữ liệu từ nhà cung cấp hay toàn bộ từ điển tiếng Anh. `tools/dictionary/publish.ts` xuất `publishDictionaryManifest`: operator cấp manifest nguồn/phiên bản/quyền phân phối, WordVersion bất biến, alias, connections và checksum index; pipeline khóa READY rồi đổi pointer bằng CAS. Không có endpoint sửa nghĩa gốc trên admin. Dữ liệu thật chỉ được nạp sau khi D03 được quyết định.
+D03 chưa chốt nguồn/giấy phép từ điển. Seed gồm 50 mục từ tự soạn. `tools/dictionary/publish.ts` xuất `publishDictionaryManifest`: operator cấp manifest nguồn/phiên bản/quyền phân phối, WordVersion bất biến, alias, connections và checksum index; pipeline khóa READY rồi đổi pointer bằng CAS. Không có endpoint sửa nghĩa gốc trên admin. Dữ liệu thật chỉ được nạp sau khi D03 được quyết định.
+
+Để chuyển bản SQLite KALA đã giải mã sang manifest local, dùng `npm run dictionary:convert-kala`, rồi `npm run dictionary:check-local -- .local/kala-converted/manifest.review.json`. Xem [mapping, ví dụ và giới hạn chuyển đổi](docs/kala-conversion.md). Script giữ trạng thái quyền nguồn chưa xác minh và không gọi pipeline publish.
 
 Giới hạn triển khai bảo vệ bộ nhớ/document: file5MiB, avatar16MP→512×512 WebP; lô1000dòng với payload500KiB và receipt750KiB; search index64MiB; ngữ cảnh AI32.000ký tự, tin2000/reply4000, tối đa15cặp. Vượt giới hạn trả lỗi rõ, không cắt dữ liệu âm thầm. Đây là giới hạn tài nguyên của bản triển khai, không thay luật tính kết quả.
 

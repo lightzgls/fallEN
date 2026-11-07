@@ -16,12 +16,14 @@ export {
   getWordVersion,
   findConnections,
   getPublishedDecks,
+  getOfflineDictionary,
 } from "./routes/dictionary.js";
 export {
   saveWord,
   removeWord,
   getSavedWords,
   getSavedWordCount,
+  syncVocabulary,
   getDueWords,
   getStudySource,
   getStudyPlace,

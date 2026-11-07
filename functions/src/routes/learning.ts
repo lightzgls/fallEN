@@ -2,9 +2,47 @@ import { createLearningService } from "../services/learning.js";
 import { createFirebaseLearningStore } from "../infrastructure/learning/store.js";
 import { createLearningControllers } from "../controllers/learning.js";
 import { callable } from "../handlers/callable.js";
+import type { Actor } from "../contracts/callable.js";
+import { z } from "zod";
+import { identifier, parse } from "../shared/validation.js";
+import { fail } from "../shared/errors.js";
+import { wordCommand } from "../contracts/learning/inputs.js";
+import { removeOfflineWord } from "../services/learning/vocabulary.js";
+import { offlineVocabularyPage } from "../infrastructure/learning/offline-vocabulary.js";
+const learningStore = createFirebaseLearningStore();
 export const learningHandlers = createLearningControllers(
-  createLearningService(createFirebaseLearningStore()),
+  createLearningService(learningStore),
 );
+const offlineVocabulary = z.discriminatedUnion("action", [
+  z
+    .object({
+      action: z.literal("list"),
+      owner: z.string().min(1).max(128),
+      cursor: identifier.optional(),
+      pageSize: z.number().int().min(1).max(30).default(30),
+    })
+    .strict(),
+  wordCommand
+    .extend({ action: z.literal("save"), owner: z.string().min(1).max(128) })
+    .strict(),
+  wordCommand
+    .extend({ action: z.literal("remove"), owner: z.string().min(1).max(128) })
+    .strict(),
+]);
+export async function syncVocabularyRequest(actor: Actor, raw: unknown) {
+  const input = parse(offlineVocabulary, raw);
+  if (input.owner !== actor.uid) fail("PERMISSION_DENIED");
+  if (input.action === "list")
+    return offlineVocabularyPage(actor, input.cursor, input.pageSize);
+  const command = { wordId: input.wordId, commandId: input.commandId };
+  if (input.action === "save")
+    return learningHandlers.saveWord(actor, {
+      ...command,
+      source: "DICTIONARY",
+    });
+  return removeOfflineWord(learningStore, actor, command);
+}
+export const syncVocabulary = callable("syncVocabulary", syncVocabularyRequest);
 export const saveWord = callable("saveWord", learningHandlers.saveWord);
 export const removeWord = callable("removeWord", learningHandlers.removeWord);
 export const getSavedWords = callable(

@@ -1,0 +1,1215 @@
+{
+  "releaseId": "demo-authored-v2",
+  "sources": [
+    {
+      "sourceId": "fallen-authored-demo",
+      "name": "fallEN authored examples",
+      "version": "2",
+      "license": "Original demonstration text authored for fallEN.",
+      "redistributionAllowed": true
+    }
+  ],
+  "words": [
+    {
+      "wordId": "journey",
+      "version": 2,
+      "spelling": "journey",
+      "phonetic": "/ˈdʒɜːni/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "journey-meaning",
+          "partOfSpeech": "noun",
+          "text": "hành trình",
+          "example": "The journey took three hours.",
+          "exampleTranslation": "Chuyến đi mất ba tiếng."
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "journey",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "reservation",
+      "version": 2,
+      "spelling": "reservation",
+      "phonetic": "/ˌrezəˈveɪʃən/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "reservation-meaning",
+          "partOfSpeech": "noun",
+          "text": "sự đặt trước",
+          "example": "I have a reservation at seven.",
+          "exampleTranslation": "Tôi đã đặt chỗ lúc bảy giờ."
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "reservation",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "available",
+      "version": 2,
+      "spelling": "available",
+      "phonetic": "/əˈveɪləbəl/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "available-meaning",
+          "partOfSpeech": "adjective",
+          "text": "có sẵn",
+          "example": "Tickets are still available.",
+          "exampleTranslation": "Vé vẫn còn."
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "available",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "station",
+      "version": 2,
+      "spelling": "station",
+      "phonetic": "/ˈsteɪʃən/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "station-meaning",
+          "partOfSpeech": "noun",
+          "text": "nhà ga",
+          "example": "Meet me at the station.",
+          "exampleTranslation": "Gặp tôi ở nhà ga nhé."
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "station",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "ticket",
+      "version": 2,
+      "spelling": "ticket",
+      "phonetic": "/ˈtɪkɪt/",
+      "otherSpellings": ["tickets"],
+      "meanings": [
+        {
+          "id": "ticket-meaning",
+          "partOfSpeech": "noun",
+          "text": "vé",
+          "example": "I bought a train ticket.",
+          "exampleTranslation": "Tôi đã mua vé tàu."
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "ticket",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "arrival",
+      "version": 2,
+      "spelling": "arrival",
+      "phonetic": "/əˈraɪvəl/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "arrival-meaning",
+          "partOfSpeech": "noun",
+          "text": "sự đến nơi"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "arrival",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "depart",
+      "version": 2,
+      "spelling": "depart",
+      "phonetic": "/dɪˈpɑːt/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "depart-meaning",
+          "partOfSpeech": "verb",
+          "text": "khởi hành",
+          "example": "The train departs at nine.",
+          "exampleTranslation": "Tàu khởi hành lúc chín giờ."
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "depart",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "return",
+      "version": 2,
+      "spelling": "return",
+      "phonetic": "/rɪˈtɜːn/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "return-meaning",
+          "partOfSpeech": "verb",
+          "text": "trở về"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "return",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "luggage",
+      "version": 2,
+      "spelling": "luggage",
+      "phonetic": "/ˈlʌɡɪdʒ/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "luggage-meaning",
+          "partOfSpeech": "noun",
+          "text": "hành lý"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "luggage",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "platform",
+      "version": 2,
+      "spelling": "platform",
+      "phonetic": "/ˈplætfɔːm/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "platform-meaning",
+          "partOfSpeech": "noun",
+          "text": "sân ga"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "platform",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "book",
+      "version": 3,
+      "spelling": "book",
+      "phonetic": "/bʊk/",
+      "otherSpellings": ["books", "booked"],
+      "meanings": [
+        {
+          "id": "book-meaning",
+          "partOfSpeech": "verb",
+          "text": "đặt chỗ",
+          "example": "We booked a table for two.",
+          "exampleTranslation": "Chúng tôi đã đặt bàn cho hai người."
+        },
+        {
+          "id": "book-noun",
+          "partOfSpeech": "noun",
+          "text": "sách",
+          "example": "I borrowed a book from the library.",
+          "exampleTranslation": "Tôi mượn một quyển sách ở thư viện."
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "book",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "request",
+      "version": 2,
+      "spelling": "request",
+      "phonetic": "/rɪˈkwest/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "request-meaning",
+          "partOfSpeech": "verb",
+          "text": "yêu cầu"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "request",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "bank",
+      "version": 2,
+      "spelling": "bank",
+      "phonetic": "/bæŋk/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "bank-meaning",
+          "partOfSpeech": "noun",
+          "text": "ngân hàng",
+          "example": "I opened an account at the bank.",
+          "exampleTranslation": "Tôi đã mở tài khoản ở ngân hàng."
+        },
+        {
+          "id": "bank-river",
+          "partOfSpeech": "noun",
+          "text": "bờ sông",
+          "example": "We sat on the river bank.",
+          "exampleTranslation": "Chúng tôi ngồi bên bờ sông."
+        },
+        {
+          "id": "bank-deposit",
+          "partOfSpeech": "verb",
+          "text": "gửi tiền vào ngân hàng"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "bank",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "daily",
+      "version": 1,
+      "spelling": "daily",
+      "phonetic": "/ˈdeɪli/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "daily-meaning",
+          "partOfSpeech": "adjective",
+          "text": "hằng ngày"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "daily",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "work",
+      "version": 1,
+      "spelling": "work",
+      "phonetic": "/wɜːk/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "work-meaning",
+          "partOfSpeech": "noun",
+          "text": "công việc",
+          "example": "I have a lot of work today.",
+          "exampleTranslation": "Hôm nay tôi có nhiều việc phải làm."
+        },
+        {
+          "id": "work-verb",
+          "partOfSpeech": "verb",
+          "text": "làm việc",
+          "example": "He works at a bank.",
+          "exampleTranslation": "Anh ấy làm việc ở ngân hàng."
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "work",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "food",
+      "version": 1,
+      "spelling": "food",
+      "phonetic": "/fuːd/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "food-meaning",
+          "partOfSpeech": "noun",
+          "text": "thức ăn"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "food",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "run",
+      "version": 1,
+      "spelling": "run",
+      "phonetic": "/rʌn/",
+      "otherSpellings": ["runs", "ran", "running"],
+      "meanings": [
+        {
+          "id": "run-meaning",
+          "partOfSpeech": "verb",
+          "text": "chạy",
+          "example": "I run in the park every morning.",
+          "exampleTranslation": "Tôi chạy trong công viên mỗi sáng."
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "run",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "apple",
+      "version": 1,
+      "spelling": "apple",
+      "phonetic": "/ˈæpəl/",
+      "otherSpellings": ["apples"],
+      "meanings": [
+        {
+          "id": "apple-meaning",
+          "partOfSpeech": "noun",
+          "text": "quả táo"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "apple",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "water",
+      "version": 1,
+      "spelling": "water",
+      "phonetic": "/ˈwɔːtə/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "water-meaning",
+          "partOfSpeech": "noun",
+          "text": "nước",
+          "example": "Can I have a glass of water?",
+          "exampleTranslation": "Cho tôi một ly nước được không?"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "water",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "coffee",
+      "version": 1,
+      "spelling": "coffee",
+      "phonetic": "/ˈkɒfi/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "coffee-meaning",
+          "partOfSpeech": "noun",
+          "text": "cà phê"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "coffee",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "bread",
+      "version": 1,
+      "spelling": "bread",
+      "phonetic": "/bred/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "bread-meaning",
+          "partOfSpeech": "noun",
+          "text": "bánh mì"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "bread",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "breakfast",
+      "version": 1,
+      "spelling": "breakfast",
+      "phonetic": "/ˈbrekfəst/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "breakfast-meaning",
+          "partOfSpeech": "noun",
+          "text": "bữa sáng"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "breakfast",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "menu",
+      "version": 1,
+      "spelling": "menu",
+      "phonetic": "/ˈmenjuː/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "menu-meaning",
+          "partOfSpeech": "noun",
+          "text": "thực đơn"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "menu",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "kitchen",
+      "version": 1,
+      "spelling": "kitchen",
+      "phonetic": "/ˈkɪtʃɪn/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "kitchen-meaning",
+          "partOfSpeech": "noun",
+          "text": "nhà bếp"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "kitchen",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "market",
+      "version": 1,
+      "spelling": "market",
+      "phonetic": "/ˈmɑːkɪt/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "market-meaning",
+          "partOfSpeech": "noun",
+          "text": "chợ"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "market",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "price",
+      "version": 1,
+      "spelling": "price",
+      "phonetic": "/praɪs/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "price-meaning",
+          "partOfSpeech": "noun",
+          "text": "giá"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "price",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "cheap",
+      "version": 1,
+      "spelling": "cheap",
+      "phonetic": "/tʃiːp/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "cheap-meaning",
+          "partOfSpeech": "adjective",
+          "text": "rẻ"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "cheap",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "expensive",
+      "version": 1,
+      "spelling": "expensive",
+      "phonetic": "/ɪkˈspensɪv/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "expensive-meaning",
+          "partOfSpeech": "adjective",
+          "text": "đắt"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "expensive",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "hotel",
+      "version": 1,
+      "spelling": "hotel",
+      "phonetic": "/həʊˈtel/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "hotel-meaning",
+          "partOfSpeech": "noun",
+          "text": "khách sạn"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "hotel",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "airport",
+      "version": 1,
+      "spelling": "airport",
+      "phonetic": "/ˈeəpɔːt/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "airport-meaning",
+          "partOfSpeech": "noun",
+          "text": "sân bay"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "airport",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "train",
+      "version": 1,
+      "spelling": "train",
+      "phonetic": "/treɪn/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "train-meaning",
+          "partOfSpeech": "noun",
+          "text": "tàu hỏa"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "train",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "bus",
+      "version": 1,
+      "spelling": "bus",
+      "phonetic": "/bʌs/",
+      "otherSpellings": ["buses"],
+      "meanings": [
+        {
+          "id": "bus-meaning",
+          "partOfSpeech": "noun",
+          "text": "xe buýt"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "bus",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "street",
+      "version": 1,
+      "spelling": "street",
+      "phonetic": "/striːt/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "street-meaning",
+          "partOfSpeech": "noun",
+          "text": "đường phố"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "street",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "map",
+      "version": 1,
+      "spelling": "map",
+      "phonetic": "/mæp/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "map-meaning",
+          "partOfSpeech": "noun",
+          "text": "bản đồ"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "map",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "school",
+      "version": 1,
+      "spelling": "school",
+      "phonetic": "/skuːl/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "school-meaning",
+          "partOfSpeech": "noun",
+          "text": "trường học"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "school",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "teacher",
+      "version": 1,
+      "spelling": "teacher",
+      "phonetic": "/ˈtiːtʃə/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "teacher-meaning",
+          "partOfSpeech": "noun",
+          "text": "giáo viên"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "teacher",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "student",
+      "version": 1,
+      "spelling": "student",
+      "phonetic": "/ˈstjuːdənt/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "student-meaning",
+          "partOfSpeech": "noun",
+          "text": "học sinh, sinh viên"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "student",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "learn",
+      "version": 1,
+      "spelling": "learn",
+      "phonetic": "/lɜːn/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "learn-meaning",
+          "partOfSpeech": "verb",
+          "text": "học",
+          "example": "We learn new words every day.",
+          "exampleTranslation": "Chúng tôi học từ mới mỗi ngày."
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "learn",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "read",
+      "version": 1,
+      "spelling": "read",
+      "phonetic": "/riːd/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "read-meaning",
+          "partOfSpeech": "verb",
+          "text": "đọc"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "read",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "write",
+      "version": 1,
+      "spelling": "write",
+      "phonetic": "/raɪt/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "write-meaning",
+          "partOfSpeech": "verb",
+          "text": "viết"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "write",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "listen",
+      "version": 1,
+      "spelling": "listen",
+      "phonetic": "/ˈlɪsən/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "listen-meaning",
+          "partOfSpeech": "verb",
+          "text": "lắng nghe"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "listen",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "speak",
+      "version": 1,
+      "spelling": "speak",
+      "phonetic": "/spiːk/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "speak-meaning",
+          "partOfSpeech": "verb",
+          "text": "nói"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "speak",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "question",
+      "version": 1,
+      "spelling": "question",
+      "phonetic": "/ˈkwestʃən/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "question-meaning",
+          "partOfSpeech": "noun",
+          "text": "câu hỏi"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "question",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "answer",
+      "version": 1,
+      "spelling": "answer",
+      "phonetic": "/ˈɑːnsə/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "answer-meaning",
+          "partOfSpeech": "noun",
+          "text": "câu trả lời"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "answer",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "friend",
+      "version": 1,
+      "spelling": "friend",
+      "phonetic": "/frend/",
+      "otherSpellings": ["friends"],
+      "meanings": [
+        {
+          "id": "friend-meaning",
+          "partOfSpeech": "noun",
+          "text": "bạn bè"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "friend",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "family",
+      "version": 1,
+      "spelling": "family",
+      "phonetic": "/ˈfæməli/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "family-meaning",
+          "partOfSpeech": "noun",
+          "text": "gia đình"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "family",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "morning",
+      "version": 1,
+      "spelling": "morning",
+      "phonetic": "/ˈmɔːnɪŋ/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "morning-meaning",
+          "partOfSpeech": "noun",
+          "text": "buổi sáng"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "morning",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "evening",
+      "version": 1,
+      "spelling": "evening",
+      "phonetic": "/ˈiːvnɪŋ/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "evening-meaning",
+          "partOfSpeech": "noun",
+          "text": "buổi tối"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "evening",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "weather",
+      "version": 1,
+      "spelling": "weather",
+      "phonetic": "/ˈweðə/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "weather-meaning",
+          "partOfSpeech": "noun",
+          "text": "thời tiết"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "weather",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    },
+    {
+      "wordId": "happy",
+      "version": 1,
+      "spelling": "happy",
+      "phonetic": "/ˈhæpi/",
+      "otherSpellings": [],
+      "meanings": [
+        {
+          "id": "happy-meaning",
+          "partOfSpeech": "adjective",
+          "text": "vui vẻ"
+        }
+      ],
+      "dictionaryRefs": [
+        {
+          "sourceId": "fallen-authored-demo",
+          "sourceEntryId": "happy",
+          "sourceVersion": "2"
+        }
+      ],
+      "active": true,
+      "listenAllowed": true
+    }
+  ],
+  "connections": []
+}
